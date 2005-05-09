@@ -48,6 +48,10 @@
 #define CREATE_TRACE_POINTS
 #include <trace/events/printk.h>
 
+#ifdef        CONFIG_DEBUG_LL
+extern void printascii(char *);
+#endif
+
 /*
  * Architectures can override it:
  */
@@ -950,6 +954,9 @@ asmlinkage int vprintk(const char *fmt, va_list args)
 
 
 	p = printk_buf;
+#ifdef	CONFIG_DEBUG_LL
+	printascii(p);
+#endif
 #ifdef CONFIG_LGE_CRASH_HANDLER
 	store_crash_log(p);
 #endif
