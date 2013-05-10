@@ -2847,6 +2847,7 @@ static int mxt_suspend(struct device *dev)
 	}
 
 	mutex_unlock(&input_dev->mutex);
+	mxt_release_all(data);
 
 	cancel_delayed_work_sync(&data->force_calibrate_delayed_work);
 	cancel_delayed_work_sync(&data->disable_antipalm_delayed_work);
@@ -2879,7 +2880,9 @@ static int mxt_resume(struct device *dev)
 		dev_err(dev, "failed to enter high power mode\n");
 		return error;
 	}
-
+	mxt_write_object(data, MXT_GEN_COMMAND_T6,
+			MXT_COMMAND_RESET, 1);
+	msleep(MXT_RESET_TIME);
 	mutex_lock(&input_dev->mutex);
 
 	if (input_dev->users) {
