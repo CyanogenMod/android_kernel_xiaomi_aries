@@ -63,6 +63,7 @@ void wcnss_prevent_suspend(void);
 void wcnss_ssr_boot_notify(void);
 void wcnss_reset_intr(void);
 int wcnss_wlan_iris_xo_mode(void);
+void wcnss_riva_dump_pmic_regs(void);
 void *wcnss_prealloc_get(unsigned int size);
 int wcnss_prealloc_put(void *ptr);
 int wcnss_device_ready(void);
