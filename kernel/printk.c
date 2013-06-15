@@ -48,7 +48,7 @@
 #define CREATE_TRACE_POINTS
 #include <trace/events/printk.h>
 
-#ifdef        CONFIG_DEBUG_LL
+#ifdef CONFIG_EARLY_PRINTK_DIRECT
 extern void printascii(char *);
 #endif
 
@@ -954,7 +954,7 @@ asmlinkage int vprintk(const char *fmt, va_list args)
 
 
 	p = printk_buf;
-#ifdef	CONFIG_DEBUG_LL
+#ifdef CONFIG_EARLY_PRINTK_DIRECT
 	printascii(p);
 #endif
 #ifdef CONFIG_LGE_CRASH_HANDLER
