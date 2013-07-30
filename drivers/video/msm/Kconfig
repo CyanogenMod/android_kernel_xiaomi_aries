@@ -184,6 +184,11 @@ config FB_MSM_MIPI_DSI_LGIT
 	select FB_MSM_MIPI_DSI
 	default n
 
+config FB_MSM_MIPI_DSI_HITACHI
+	bool
+	select FB_MSM_MIPI_DSI
+	default n
+
 config FB_MSM_MIPI_DSI_RENESAS
 	bool
 	select FB_MSM_MIPI_DSI
@@ -320,6 +325,11 @@ config FB_MSM_LCDC_WXGA
 config FB_MSM_MIPI_LGIT_VIDEO_WXGA_PT
 	bool
 	select FB_MSM_MIPI_DSI_LGIT
+	default n
+
+config FB_MSM_MIPI_HITACHI_CMD_720P_PT
+	bool
+	select FB_MSM_MIPI_DSI_HITACHI
 	default n
 
 config FB_MSM_LVDS_CHIMEI_WXGA
@@ -482,6 +492,11 @@ config FB_MSM_MIPI_LGIT_VIDEO_WXGA_PT_PANEL
        select FB_MSM_MIPI_LGIT_VIDEO_WXGA_PT
 
 
+config FB_MSM_MIPI_HITACHI_CMD_720P_PT_PANEL
+       bool "MIPI Hitachi Command 720P PT Panel"
+       select FB_MSM_MIPI_HITACHI_CMD_720P_PT
+
+
 # end the multiple mipi panels config
 
 # remove the choice
@@ -492,6 +507,15 @@ config LGIT_VIDEO_WXGA_CABC
 	depends on FB_MSM_MIPI_LGIT_VIDEO_WXGA_PT_PANEL
 	help
 	  Enable CABC(Content Apaptive Backlight Control) on LGIT Panel
+	  to reduce power consumption
+
+
+config HITACHI_CMD_720P_CABC
+	bool "Content Adaptive Backlight Control on HITACHI 720p Panel"
+	default y
+	depends on FB_MSM_MIPI_HITACHI_CMD_720P_PT_PANEL
+	help
+	  Enable CABC(Content Apaptive Backlight Control) on HITACHI Panel
 	  to reduce power consumption
 
 choice
