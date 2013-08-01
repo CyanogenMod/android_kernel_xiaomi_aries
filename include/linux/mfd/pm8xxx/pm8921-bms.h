@@ -24,7 +24,7 @@
 #define PC_CC_COLS             13
 
 #define PC_TEMP_ROWS		29
-#define PC_TEMP_COLS		8
+#define PC_TEMP_COLS		11
 
 #define MAX_SINGLE_LUT_COLS	20
 
@@ -109,6 +109,12 @@ enum battery_type {
 	BATT_PALLADIUM,
 	BATT_DESAY,
 	BATT_LGE,
+	BATT_LG_1900,
+	BATT_LG_3000,
+	BATT_SAMSUNG_1900,
+	BATT_SAMSUNG_3000,
+	BATT_SONY_1900,
+	BATT_SONY_3000,
 };
 
 /**
@@ -147,6 +153,13 @@ struct pm8921_bms_platform_data {
 extern struct pm8921_bms_battery_data  palladium_1500_data;
 extern struct pm8921_bms_battery_data  desay_5200_data;
 extern struct pm8921_bms_battery_data  lge_2100_mako_data;
+extern struct pm8921_bms_battery_data  lg_1900_data;
+extern struct pm8921_bms_battery_data  lg_3000_data;
+extern struct pm8921_bms_battery_data  samsung_1900_data;
+extern struct pm8921_bms_battery_data  samsung_3000_data;
+extern struct pm8921_bms_battery_data  sony_1900_data;
+extern struct pm8921_bms_battery_data  sony_3000_data;
+
 /**
  * pm8921_bms_get_vsense_avg - return the voltage across the sense
  *				resitor in microvolts
