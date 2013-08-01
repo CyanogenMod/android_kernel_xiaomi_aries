@@ -3363,21 +3363,6 @@ static int __devinit pm8921_bms_probe(struct platform_device *pdev)
 	chip->soc_at_cv = -EINVAL;
 
 	chip->ignore_shutdown_soc = pdata->ignore_shutdown_soc;
-	rc = set_battery_data(chip);
-	if (rc) {
-		pr_err("%s bad battery data %d\n", __func__, rc);
-		goto free_chip;
-	}
-
-	if (chip->pc_temp_ocv_lut == NULL) {
-		pr_err("temp ocv lut table is NULL\n");
-		rc = -EINVAL;
-		goto free_chip;
-	}
-
-	/* set defaults in the battery data */
-	if (chip->default_rbatt_mohm <= 0)
-		chip->default_rbatt_mohm = DEFAULT_RBATT_MOHMS;
 
 	chip->batt_temp_channel = pdata->bms_cdata.batt_temp_channel;
 	chip->vbat_channel = pdata->bms_cdata.vbat_channel;
@@ -3397,6 +3382,22 @@ static int __devinit pm8921_bms_probe(struct platform_device *pdev)
 	}
 	chip->vbat_at_cv = -EINVAL;
 	chip->first_fixed_iavg_ma = pdata->first_fixed_iavg_ma;
+
+	rc = set_battery_data(chip);
+	if (rc) {
+		pr_err("%s bad battery data %d\n", __func__, rc);
+		goto free_chip;
+	}
+
+	if (chip->pc_temp_ocv_lut == NULL) {
+		pr_err("temp ocv lut table is NULL\n");
+		rc = -EINVAL;
+		goto free_chip;
+	}
+
+	/* set defaults in the battery data */
+	if (chip->default_rbatt_mohm <= 0)
+		chip->default_rbatt_mohm = DEFAULT_RBATT_MOHMS;
 
 	mutex_init(&chip->calib_mutex);
 	INIT_WORK(&chip->calib_hkadc_work, calibrate_hkadc_work);
