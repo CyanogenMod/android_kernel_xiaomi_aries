@@ -454,3 +454,10 @@ config SND_SOC_TPA2028D
 	default n
 	help
 	  Texas Instruments 3W Mono Class-D Audio Amplifier
+
+config SND_SOC_ES310
+	tristate "Voice Processor ES310"
+	depends on I2C
+	default n
+	help
+	  earSmart eS310 Voice Processor
