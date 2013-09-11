@@ -36,6 +36,8 @@
 #define ISA1200_HCTRL5_VIB_STOP	0x6B
 #define ISA1200_POWER_DOWN_MASK 0x7F
 
+static int pwm_duty = 0;
+
 struct isa1200_chip {
 	struct i2c_client *client;
 	struct isa1200_platform_data *pdata;
@@ -97,7 +99,7 @@ static void isa1200_vib_set(struct isa1200_chip *haptic, int enable)
 			int period_us = haptic->period_ns / 1000;
 
 			rc = pwm_config(haptic->pwm,
-				(period_us * haptic->pdata->duty) / 100,
+				(period_us * pwm_duty) / 100,
 				period_us);
 			if (rc < 0) {
 				pr_err("%s: pwm_config fail\n", __func__);
@@ -570,13 +572,39 @@ static int isa1200_parse_dt(struct device *dev,
 }
 #endif
 
+static ssize_t vibrator_amp_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	return sprintf(buf, "%d\n", pwm_duty);
+}
+
+static ssize_t vibrator_amp_store(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t size)
+{
+    int gain;
+	sscanf(buf, "%d", &gain);
+
+    if(gain>100)
+        gain=100;
+    else if(gain<70)
+        gain=70;
+
+    pwm_duty = gain;
+
+	return size;
+}
+
+static struct device_attribute android_vibrator_device_attrs[] = {
+	__ATTR(amp, S_IRUGO | S_IWUSR, vibrator_amp_show, vibrator_amp_store),
+};
+
 
 static int __devinit isa1200_probe(struct i2c_client *client,
 			const struct i2c_device_id *id)
 {
 	struct isa1200_chip *haptic;
 	struct isa1200_platform_data *pdata;
-	int ret;
+	int ret, i;
 
 	if (!i2c_check_functionality(client->adapter,
 			I2C_FUNC_SMBUS_BYTE_DATA)) {
@@ -715,6 +743,17 @@ static int __devinit isa1200_probe(struct i2c_client *client,
 		if (IS_ERR(haptic->pwm_clk)) {
 			dev_err(&client->dev, "pwm_clk get failed\n");
 			ret = PTR_ERR(haptic->pwm_clk);
+			goto reset_hctrl0;
+		}
+	}
+
+    pwm_duty = pdata->duty;
+
+    for (i = 0; i < ARRAY_SIZE(android_vibrator_device_attrs); i++) {
+		ret = device_create_file(haptic->dev.dev,
+				&android_vibrator_device_attrs[i]);
+		if (ret < 0) {
+			pr_err("%s: failed to create sysfs\n", __func__);
 			goto reset_hctrl0;
 		}
 	}
