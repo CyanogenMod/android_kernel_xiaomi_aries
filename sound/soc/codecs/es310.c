@@ -24,6 +24,7 @@
 #include <linux/miscdevice.h>
 #include <linux/delay.h>
 #include <asm/uaccess.h>
+#include <linux/firmware.h>
 
 #define MODULE_NAME "vp_audience_es310"
 
@@ -33,36 +34,6 @@
 #define ES310_I2C_CMD_RESET 0x80020000
 #define ES310_I2C_CMD_SUSPEND 0x80100001
 #define ES310_I2C_CMD_SYNC 0x80000000
-
-#define PRESET_BASE 0x80310000
-#define ES310_PRESET_HANDSET_INCALL_NB		    (PRESET_BASE)
-#define ES310_PRESET_HEADSET_INCALL_NB 	           (PRESET_BASE + 1)
-#define ES310_PRESET_HANDSFREE_REC_NB		    (PRESET_BASE + 2)
-#define ES310_PRESET_HANDSFREE_INCALL_NB		    (PRESET_BASE + 3)
-#define ES310_PRESET_HANDSET_INCALL_WB	           (PRESET_BASE + 4)
-#define ES310_PRESET_HEADSET_INCALL_WB		    (PRESET_BASE + 5)
-#define ES310_PRESET_AUDIOPATH_DISABLE               (PRESET_BASE + 6)
-#define ES310_PRESET_HANDSFREE_INCALL_WB	    (PRESET_BASE + 7)
-#define ES310_PRESET_HANDSET_VOIP_WB		           (PRESET_BASE + 8)
-#define ES310_PRESET_HEADSET_VOIP_WB                   (PRESET_BASE + 9)
-#define ES310_PRESET_HANDSFREE_REC_WB                 (PRESET_BASE + 10)
-#define ES310_PRESET_HANDSFREE_VOIP_WB               (PRESET_BASE + 11)
-#define ES310_PRESET_VOICE_RECOGNIZTION_WB       (PRESET_BASE + 12)
-#define ES310_PRESET_HEADSET_REC_WB                     (PRESET_BASE + 13)
-
-#define ES310_IOCTL_MAGIC ';'
-#define ES310_SET_CONFIG _IOW(ES310_IOCTL_MAGIC, 2, unsigned int *)
-#define ES310_SET_PARAM _IOW(ES310_IOCTL_MAGIC, 4, struct ES310_config_data *)
-#define ES310_SYNC_CMD _IO(ES310_IOCTL_MAGIC, 9)
-#define ES310_SLEEP_CMD _IO(ES310_IOCTL_MAGIC, 11)
-#define ES310_RESET_CMD _IO(ES310_IOCTL_MAGIC, 12)
-#define ES310_WAKEUP_CMD _IO(ES310_IOCTL_MAGIC, 13)
-#define ES310_MDELAY _IOW(ES310_IOCTL_MAGIC, 14, unsigned int)
-#define ES310_READ_FAIL_COUNT _IOR(ES310_IOCTL_MAGIC, 15, unsigned int *)
-#define ES310_READ_SYNC_DONE _IOR(ES310_IOCTL_MAGIC, 16, bool *)
-#define ES310_READ_DATA _IOR(ES310_IOCTL_MAGIC, 17, unsigned long *)
-#define ES310_WRITE_MSG _IOW(ES310_IOCTL_MAGIC, 18, unsigned long)
-#define ES310_SET_PRESET _IOW(ES310_IOCTL_MAGIC, 19, unsigned long)
 
 static unsigned char ES310_IOCTL_PORTCONFIGS[28][4] = {
 	{0x80, 0x0C, 0x0A, 0x00},
@@ -96,10 +67,10 @@ static unsigned char ES310_IOCTL_PORTCONFIGS[28][4] = {
 };
 
 static char default_config_data[] = {
-	1, 0x80, 0x26, 0x00, 0x43,
-	2, 0x80, 0x26, 0x00, 0x49,
-	3, 0x80, 0x26, 0x00, 0x43,
-	4, 0x80, 0x26, 0x00, 0x49,
+	ES310_PATH_HANDSET, 0x80, 0x26, 0x00, 0x43,
+	ES310_PATH_HEADSET, 0x80, 0x26, 0x00, 0x49,
+	ES310_PATH_HANDSFREE, 0x80, 0x26, 0x00, 0x43,
+	ES310_PATH_BACKMIC, 0x80, 0x26, 0x00, 0x49,
 };
 
 static int mic_switch_table[6];
@@ -121,6 +92,7 @@ struct es310_config {
 	char *config_data;
 	int config_data_length;
 	int current_preset;
+	struct firmware *fw;
 };
 
 static struct es310_config *es310_data = NULL;
@@ -348,6 +320,49 @@ error_out:
 	return rc;
 }
 
+#define ES310_FW_LOAD_BUF_SZ 64
+static int es310_firmware_download(void)
+{
+	int rc = 0;
+	unsigned int buf_frames;
+	char *buf_ptr;
+
+	// send image
+	buf_frames = es310_data->fw->size / ES310_FW_LOAD_BUF_SZ;
+	D("buf_frames = %d", buf_frames);
+	buf_ptr = (char *)es310_data->fw->data;
+	for ( ; buf_frames; --buf_frames, buf_ptr += ES310_FW_LOAD_BUF_SZ) {
+		rc = es310_i2c_write(buf_ptr, ES310_FW_LOAD_BUF_SZ);
+		if (rc < 0) {
+			D("ES325_BUS_WRITE_ERROR = %d\n", rc);
+			D("firmware load failed\n");
+			return -EIO;
+		}
+	}
+	if (es310_data->fw->size % ES310_FW_LOAD_BUF_SZ) {
+		rc = es310_i2c_write(buf_ptr, es310_data->fw->size % ES310_FW_LOAD_BUF_SZ);
+		if (rc < 0) {
+			D("ES325_BUS_WRITE_ERROR = %d\n", rc);
+			D("firmware load failed\n");
+			return -EIO;
+		}
+	}
+
+	// Give the chip some time to become ready after firmware download
+	msleep(120);
+
+	rc = es310_execute_cmd(ES310_I2C_CMD_SYNC);
+
+	if (rc < 0) {
+		D("sync command error %d", rc);
+		return rc;
+	} else {
+		D("sync command ok");
+	}
+
+	return rc;
+}
+
 static int es310_hardreset(void)
 {
 	int rc = 0;
@@ -370,6 +385,21 @@ static int es310_hardreset(void)
 	} else
 		D("es310_reset is not a valid gpio\n");
 	mdelay(50);
+
+	if(es310_data->pdata->fw_name) {
+		rc = request_firmware((const struct firmware**)&es310_data->fw, es310_data->pdata->fw_name, &es310_data->client->dev);
+		if (rc) {
+			D("request_firmware(%s) failed %d\n", es310_data->pdata->fw_name, rc);
+			return rc;
+		}
+		rc = es310_firmware_download();
+		if (rc) {
+			D("es310_firmware_download failed %d\n", rc);
+			release_firmware(es310_data->fw);
+			return rc;
+		}
+		release_firmware(es310_data->fw);
+	}
 
 	return 0;
 }
@@ -742,6 +772,11 @@ static int es310_i2c_probe(struct i2c_client *client,
 		return -ENODEV;
 	}
 
+	if (!i2c_check_functionality(client->adapter, I2C_FUNC_I2C)) {
+		D("i2c check functionality error\n");
+		return -ENODEV;
+	}
+
 	data = kzalloc(sizeof(struct es310_config), GFP_KERNEL);
 	if (data == NULL)
 		return -ENOMEM;
@@ -799,12 +834,6 @@ static int es310_i2c_probe(struct i2c_client *client,
 	if (err < 0) {
 		D("request voiceproc mic switch gpio failed\n");
 		goto error_gpio_free_reset;
-	}
-
-	err = es310_hardreset();
-	if (err < 0) {
-		D("es310_hardreset error %d", err);
-		goto error_gpio_free_switch;
 	}
 
 	err = misc_register(&es310_device);
