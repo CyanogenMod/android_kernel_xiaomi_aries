@@ -2457,6 +2457,8 @@ static void __init apq8064_aries_init(void)
 #ifdef CONFIG_MSM_CAMERA
 	apq8064_init_cam();
 #endif
+
+	apq8064_init_input();
 }
 
 MACHINE_START(APQ8064_ARIES, "QCT APQ8064 ARIES")

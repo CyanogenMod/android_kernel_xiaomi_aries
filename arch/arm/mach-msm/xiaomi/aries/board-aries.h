@@ -154,6 +154,8 @@ enum {
 extern struct msm_rtb_platform_data apq8064_rtb_pdata;
 extern struct msm_cache_dump_platform_data apq8064_cache_dump_pdata;
 
+void apq8064_init_input(void);
+
 #define I2C_SURF 1
 #define I2C_FFA  (1 << 1)
 #define I2C_RUMI (1 << 2)
@@ -169,4 +171,5 @@ struct i2c_registry {
 	struct i2c_board_info *info;
 	int                    len;
 };
+
 #endif
