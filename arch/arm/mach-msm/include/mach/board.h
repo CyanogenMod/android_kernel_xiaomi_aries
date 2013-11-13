@@ -180,22 +180,19 @@ enum msm_sensor_type {
 	YUV_SENSOR,
 };
 
-#ifdef CONFIG_MSM_CAMERA
 enum camera_vreg_type {
-       REG_LDO,
-       REG_VS,
-       REG_GPIO,
-       REG_MAX
+	REG_LDO,
+	REG_VS,
+	REG_GPIO,
 };
 
 struct camera_vreg_t {
-       const char *reg_name;
-       enum camera_vreg_type type;
-       int min_voltage;
-       int max_voltage;
-       int op_mode;
+	char *reg_name;
+	enum camera_vreg_type type;
+	int min_voltage;
+	int max_voltage;
+	int op_mode;
 };
-#endif
 
 struct msm_gpio_set_tbl {
 	unsigned gpio;
@@ -203,14 +200,9 @@ struct msm_gpio_set_tbl {
 	uint32_t delay;
 };
 
-#ifdef CONFIG_MSM_CAMERA
 struct msm_camera_csi_lane_params {
-	uint16_t csi_lane_assign;
-	uint16_t csi_lane_mask;
-};
-#endif
-struct msm_camera_gpio_num_info {
-	uint16_t gpio_num[2];
+	uint8_t csi_lane_assign;
+	uint8_t csi_lane_mask;
 };
 
 struct msm_camera_gpio_conf {
@@ -227,7 +219,6 @@ struct msm_camera_gpio_conf {
 	uint8_t camera_off_table_size;
 	uint32_t *camera_on_table;
 	uint8_t camera_on_table_size;
-	struct msm_camera_gpio_num_info *gpio_num_info;
 };
 
 enum msm_camera_i2c_mux_mode {
@@ -276,13 +267,10 @@ struct msm_actuator_info {
 struct msm_eeprom_info {
 	struct i2c_board_info const *board_info;
 	int bus_id;
-	int eeprom_reg_addr;
-	int eeprom_read_length;
-	int eeprom_i2c_slave_addr;
 };
 
 struct msm_camera_sensor_info {
-	const char *sensor_name;
+	char *sensor_name;
 	int sensor_reset_enable;
 	int sensor_reset;
 	int sensor_pwd;
@@ -304,7 +292,6 @@ struct msm_camera_sensor_info {
 	struct msm_actuator_info *actuator_info;
 	int pmic_gpio_enable;
 	struct msm_eeprom_info *eeprom_info;
-	char vendor_name[32];
 };
 
 struct msm_camera_board_info {

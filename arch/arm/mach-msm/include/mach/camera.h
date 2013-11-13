@@ -27,6 +27,7 @@
 #include <linux/msm_ion.h>
 #include <mach/iommu_domains.h>
 
+#define CONFIG_MSM_CAMERA_DEBUG
 #ifdef CONFIG_MSM_CAMERA_DEBUG
 #define CDBG(fmt, args...) pr_debug(fmt, ##args)
 #else
@@ -84,16 +85,18 @@ enum vfe_resp_msg {
 	VFE_MSG_SYNC_TIMER1,
 	VFE_MSG_SYNC_TIMER2,
 	VFE_MSG_COMMON,
-	VFE_MSG_START,
-	VFE_MSG_START_RECORDING, /* 20 */
-	VFE_MSG_CAPTURE,
-	VFE_MSG_JPEG_CAPTURE,
+	VFE_MSG_V32_START,
+	VFE_MSG_V32_START_RECORDING, /* 20 */
+	VFE_MSG_V32_CAPTURE,
+	VFE_MSG_V32_JPEG_CAPTURE,
 	VFE_MSG_OUTPUT_IRQ,
-	VFE_MSG_PREVIEW,
+	VFE_MSG_V2X_PREVIEW,
+	VFE_MSG_V2X_CAPTURE,
 	VFE_MSG_OUTPUT_PRIMARY,
 	VFE_MSG_OUTPUT_SECONDARY,
 	VFE_MSG_OUTPUT_TERTIARY1,
 	VFE_MSG_OUTPUT_TERTIARY2,
+	VFE_MSG_V2X_LIVESHOT_PRIMARY,
 };
 
 enum vpe_resp_msg {
@@ -133,16 +136,14 @@ struct msm_camera_csid_lut_params {
 
 struct msm_camera_csid_params {
 	uint8_t lane_cnt;
-	uint16_t lane_assign;
-	uint8_t phy_sel;
+	uint8_t lane_assign;
 	struct msm_camera_csid_lut_params lut_params;
 };
 
 struct msm_camera_csiphy_params {
 	uint8_t lane_cnt;
 	uint8_t settle_cnt;
-	uint16_t lane_mask;
-	uint8_t combo_mode;
+	uint8_t lane_mask;
 };
 
 struct msm_camera_csi2_params {
@@ -287,112 +288,6 @@ struct msm_strobe_flash_ctrl {
 	int (*strobe_flash_release)
 		(struct msm_camera_sensor_strobe_flash_data *, int32_t);
 	int (*strobe_flash_charge)(int32_t, int32_t, uint32_t);
-};
-
-enum cci_i2c_master_t {
-	MASTER_0,
-	MASTER_1,
-};
-
-enum cci_i2c_queue_t {
-	QUEUE_0,
-	QUEUE_1,
-};
-
-struct msm_camera_cci_client {
-	struct v4l2_subdev *cci_subdev;
-	uint32_t freq;
-	enum cci_i2c_master_t cci_i2c_master;
-	uint16_t sid;
-	uint16_t cid;
-	uint32_t timeout;
-	uint16_t retries;
-	uint16_t id_map;
-};
-
-enum msm_cci_cmd_type {
-	MSM_CCI_INIT,
-	MSM_CCI_RELEASE,
-	MSM_CCI_SET_SID,
-	MSM_CCI_SET_FREQ,
-	MSM_CCI_SET_SYNC_CID,
-	MSM_CCI_I2C_READ,
-	MSM_CCI_I2C_WRITE,
-	MSM_CCI_GPIO_WRITE,
-};
-
-struct msm_camera_cci_wait_sync_cfg {
-	uint16_t line;
-	uint16_t delay;
-};
-
-struct msm_camera_cci_gpio_cfg {
-	uint16_t gpio_queue;
-	uint16_t i2c_queue;
-};
-
-enum msm_camera_i2c_reg_addr_type {
-	MSM_CAMERA_I2C_BYTE_ADDR = 1,
-	MSM_CAMERA_I2C_WORD_ADDR,
-};
-
-enum msm_camera_i2c_data_type {
-	MSM_CAMERA_I2C_BYTE_DATA = 1,
-	MSM_CAMERA_I2C_WORD_DATA,
-	MSM_CAMERA_I2C_SET_BYTE_MASK,
-	MSM_CAMERA_I2C_UNSET_BYTE_MASK,
-	MSM_CAMERA_I2C_SET_WORD_MASK,
-	MSM_CAMERA_I2C_UNSET_WORD_MASK,
-	MSM_CAMERA_I2C_SET_BYTE_WRITE_MASK_DATA,
-};
-
-enum msm_camera_i2c_cmd_type {
-	MSM_CAMERA_I2C_CMD_WRITE,
-	MSM_CAMERA_I2C_CMD_POLL,
-	MSM_CAMERA_I2C_CMD_SEQ_WRITE,
-};
-
-struct msm_camera_i2c_reg_conf {
-	uint16_t reg_addr;
-	uint16_t reg_data;
-	enum msm_camera_i2c_data_type dt;
-	enum msm_camera_i2c_cmd_type cmd_type;
-	int16_t mask;
-	uint16_t *data;
-	uint16_t num_byte;
-};
-
-struct msm_camera_cci_i2c_write_cfg {
-	struct msm_camera_i2c_reg_conf *reg_conf_tbl;
-	enum msm_camera_i2c_reg_addr_type addr_type;
-	enum msm_camera_i2c_data_type data_type;
-	uint16_t size;
-};
-
-struct msm_camera_cci_i2c_read_cfg {
-	uint16_t addr;
-	enum msm_camera_i2c_reg_addr_type addr_type;
-	uint8_t *data;
-	uint16_t num_byte;
-};
-
-struct msm_camera_cci_i2c_queue_info {
-	uint32_t max_queue_size;
-	uint32_t report_id;
-	uint32_t irq_en;
-	uint32_t capture_rep_data;
-};
-
-struct msm_camera_cci_ctrl {
-	int32_t status;
-	struct msm_camera_cci_client *cci_info;
-	enum msm_cci_cmd_type cmd;
-	union {
-		struct msm_camera_cci_i2c_write_cfg cci_i2c_write_cfg;
-		struct msm_camera_cci_i2c_read_cfg cci_i2c_read_cfg;
-		struct msm_camera_cci_wait_sync_cfg cci_wait_sync_cfg;
-		struct msm_camera_cci_gpio_cfg gpio_cfg;
-	} cfg;
 };
 
 /* this structure is used in kernel */
@@ -671,7 +566,6 @@ enum msm_bus_perf_setting {
 	S_STEREO_VIDEO,
 	S_STEREO_CAPTURE,
 	S_DEFAULT,
-	S_LIVESHOT,
 	S_EXIT
 };
 
@@ -720,7 +614,6 @@ void msm_camera_io_w_mb(u32 data, void __iomem *addr);
 u32 msm_camera_io_r(void __iomem *addr);
 u32 msm_camera_io_r_mb(void __iomem *addr);
 void msm_camera_io_dump(void __iomem *addr, int size);
-void msm_camera_io_dump2(void __iomem *addr, int size);
 void msm_camera_io_memcpy(void __iomem *dest_addr,
 		void __iomem *src_addr, u32 len);
 void msm_camio_set_perf_lvl(enum msm_bus_perf_setting);
