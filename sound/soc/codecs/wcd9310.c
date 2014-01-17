@@ -2300,7 +2300,11 @@ static void tabla_codec_start_hs_polling(struct snd_soc_codec *codec)
 		pr_debug("Polling is not active, do not start polling\n");
 		return;
 	}
+#ifdef CONFIG_SND_SOC_ES310
+	snd_soc_write(codec, TABLA_A_MBHC_SCALING_MUX_1, 0x88);
+#else
 	snd_soc_write(codec, TABLA_A_MBHC_SCALING_MUX_1, 0x84);
+#endif
 
 	if (tabla->no_mic_headset_override) {
 		pr_debug("%s setting button threshold to min", __func__);

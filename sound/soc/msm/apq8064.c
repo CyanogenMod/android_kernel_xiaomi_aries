@@ -1356,6 +1356,7 @@ static int msm_audrx_init(struct snd_soc_pcm_runtime *rtd)
 	mbhc_cfg.gpio = PM8921_GPIO_PM_TO_SYS(37);
 	mbhc_cfg.gpio_irq = gpio_to_irq(mbhc_cfg.gpio);
 	mbhc_cfg.gpio_level_insert = 0;
+	mbhc_cfg.micbias = TABLA_MICBIAS1;
 #endif
 
 	mbhc_cfg.read_fw_bin = apq8064_hs_detect_use_firmware;
