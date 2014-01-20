@@ -19,6 +19,9 @@
  */
 #include <linux/gpio.h>
 #include <linux/syscore_ops.h>
+#ifdef CONFIG_LEDS_LM3530
+#include <linux/led-lm3530.h>
+#endif
 
 #include "msm_fb.h"
 #include "mipi_dsi.h"
@@ -42,6 +45,10 @@ static int mipi_hitachi_lcd_on(struct platform_device *pdev)
 		return -ENODEV;
 	if (mfd->key != MFD_KEY)
 		return -EINVAL;
+
+#ifdef CONFIG_LEDS_LM3530
+	backlight_brightness_set(0);
+#endif
 
 	MIPI_OUTP(MIPI_DSI_BASE + 0x38, 0x10000000);
 	ret = mipi_dsi_cmds_tx(&hitachi_tx_buf,
@@ -84,6 +91,9 @@ static int mipi_hitachi_lcd_off(struct platform_device *pdev)
 		pr_err("%s: failed to transmit power_off_set_1 cmds\n", __func__);
 		return ret;
 	}
+#ifdef CONFIG_LEDS_LM3530
+	backlight_brightness_set(0);
+#endif
 
 	pr_info("%s finished\n", __func__);
 	return 0;
