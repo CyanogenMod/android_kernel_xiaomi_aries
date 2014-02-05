@@ -1,8 +1,8 @@
 GCC_VERSION      := $(shell $(CONFIG_SHELL) $(PWD)/scripts/gcc-version.sh $(CROSS_COMPILE)gcc)
-EXTRA_CFLAGS += -Idrivers/media/video/msm
-EXTRA_CFLAGS += -Idrivers/media/video/msm/io
-EXTRA_CFLAGS += -Idrivers/media/video/msm/eeprom
-EXTRA_CFLAGS += -Idrivers/media/video/msm/csi
+EXTRA_CFLAGS += -Idrivers/media/platform/msm/camera_legacy
+EXTRA_CFLAGS += -Idrivers/media/platform/msm/camera_legacy/io
+EXTRA_CFLAGS += -Idrivers/media/platform/msm/camera_legacy/eeprom
+EXTRA_CFLAGS += -Idrivers/media/platform/msm/camera_legacy/csi
 obj-$(CONFIG_MSM_CAMERA_SENSOR) += msm_sensor.o
 obj-$(CONFIG_OV5647) += ov5647_v4l2.o
 obj-$(CONFIG_OV8825) += ov8825_v4l2.o

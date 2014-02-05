@@ -3,14 +3,14 @@ ifeq ($(GCC_VERSION),0404)
 CFLAGS_REMOVE_msm_vfe8x.o = -Wframe-larger-than=1024
 endif
 
-EXTRA_CFLAGS += -Idrivers/media/video/msm/io
+EXTRA_CFLAGS += -Idrivers/media/platform/msm/camera_legacy/io
 obj-$(CONFIG_MSM_CAMERA) += io/
 ifeq ($(CONFIG_MSM_CAMERA_V4L2),y)
-  EXTRA_CFLAGS += -Idrivers/media/video/msm/csi
-  EXTRA_CFLAGS += -Idrivers/media/video/msm/io
-  EXTRA_CFLAGS += -Idrivers/media/video/msm/eeprom
-  EXTRA_CFLAGS += -Idrivers/media/video/msm/sensors
-  EXTRA_CFLAGS += -Idrivers/media/video/msm/actuators
+  EXTRA_CFLAGS += -Idrivers/media/platform/msm/camera_legacy/csi
+  EXTRA_CFLAGS += -Idrivers/media/platform/msm/camera_legacy/io
+  EXTRA_CFLAGS += -Idrivers/media/platform/msm/camera_legacy/eeprom
+  EXTRA_CFLAGS += -Idrivers/media/platform/msm/camera_legacy/sensors
+  EXTRA_CFLAGS += -Idrivers/media/platform/msm/camera_legacy/actuators
   obj-$(CONFIG_MSM_CAMERA) += msm_isp.o msm.o msm_mem.o msm_mctl.o msm_mctl_buf.o msm_mctl_pp.o
   obj-$(CONFIG_MSM_CAMERA) += io/ eeprom/ sensors/ actuators/ csi/
   obj-$(CONFIG_MSM_CAMERA) += msm_gesture.o
