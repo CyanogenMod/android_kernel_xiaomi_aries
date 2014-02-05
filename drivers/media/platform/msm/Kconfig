@@ -12,6 +12,11 @@ menuconfig MSM_CAMERA
           Say Y here to enable selecting the video adapters for
           Qualcomm msm camera and video encoding
 
+config MSM_CAMERA_V1
+	bool "Qualcomm MSM camera V1"
+        depends on MSM_CAMERA
+        default y
+
 config MSM_CAMERA_DEBUG
         bool "Qualcomm MSM camera debugging with printk"
         depends on MSM_CAMERA
@@ -19,8 +24,24 @@ config MSM_CAMERA_DEBUG
         help
           Enable printk() debug for msm camera
 
+menuconfig MSM_CAMERA_LEGACY
+        bool "Qualcomm MSM legacy camera and video capture support"
+        depends on ARCH_MSM && VIDEO_V4L2 && I2C
+        default y
+        help
+          Say Y here to enable selecting the video adapters for
+          Qualcomm msm camera and video encoding
+
 if MSM_CAMERA
+
+if MSM_CAMERA_LEGACY
+source "drivers/media/platform/msm/camera_legacy/Kconfig"
+endif # MSM_CAMERA_LEGACY
+
+if MSM_CAMERA_V1
 source "drivers/media/platform/msm/camera_v1/Kconfig"
+endif # MSM_CAMERA_V1
+
 endif # MSM_CAMERA
 
 menuconfig MSMB_CAMERA
