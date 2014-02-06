@@ -114,26 +114,30 @@ struct pm8xxx_mpp_init {
 
 /* Initial PM8921 GPIO configurations */
 static struct pm8xxx_gpio_init pm8921_gpios[] __initdata = {
-	PM8921_GPIO_OUTPUT(14, 1, HIGH),	/* HDMI Mux Selector */
-	PM8921_GPIO_OUTPUT(23, 0, HIGH),	/* touchscreen power FET */
-	PM8921_GPIO_OUTPUT_BUFCONF(25, 0, LOW, CMOS), /* DISP_RESET_N */
-	PM8921_GPIO_OUTPUT_FUNC(26, 0, PM_GPIO_FUNC_2), /* Bl: Off, PWM mode */
-	PM8921_GPIO_OUTPUT_VIN(30, 1, PM_GPIO_VIN_VPH), /* SMB349 susp line */
-	PM8921_GPIO_OUTPUT_BUFCONF(36, 1, LOW, OPEN_DRAIN),
-	PM8921_GPIO_OUTPUT_FUNC(44, 0, PM_GPIO_FUNC_2),
-	PM8921_GPIO_OUTPUT(33, 0, HIGH),
+	PM8921_GPIO_OUTPUT(5, 0, HIGH),			/* touchscreen power pin */
+	PM8921_GPIO_OUTPUT(8, 0, HIGH),			/* touchscreen reset pin */
+	PM8921_GPIO_INPUT(12, PM_GPIO_PULL_NO),		/* LCD DET ID */
+	PM8921_GPIO_INPUT(16, PM_GPIO_PULL_NO),		/* MHL WAKEUP */
+	PM8921_GPIO_OUTPUT(14, 0, HIGH),		/* MHL 1V8 */
+	PM8921_GPIO_OUTPUT(19, 0, HIGH),		/* MHL 3V3 */
+	PM8921_GPIO_OUTPUT(22, 0, HIGH),		/* MHL Reset */
+	PM8921_GPIO_OUTPUT(21, 0, HIGH),		/* HDMI MHL level shift */
 	PM8921_GPIO_OUTPUT(20, 0, HIGH),
-	PM8921_GPIO_INPUT(35, PM_GPIO_PULL_UP_30),
-	PM8921_GPIO_INPUT(38, PM_GPIO_PULL_UP_30),
-	/* TABLA CODEC RESET */
-	PM8921_GPIO_OUTPUT(34, 0, MED),
-	PM8921_GPIO_OUTPUT(13, 0, HIGH),               /* PCIE_CLK_PWR_EN */
-	PM8921_GPIO_INPUT(12, PM_GPIO_PULL_UP_30),     /* PCIE_WAKE_N */
+	PM8921_GPIO_OUTPUT(28, 0, HIGH),
+	PM8921_GPIO_OUTPUT(11, 1, HIGH),		/* LCD_DCDC_EN */
+	PM8921_GPIO_OUTPUT(13, 1, HIGH),		/* BL_LED_EN */
+	PM8921_GPIO_OUTPUT_FUNC(24, 0, PM_GPIO_FUNC_2),
+	PM8921_GPIO_OUTPUT_BUFCONF(25, 1, LOW, CMOS),	/* DISP_RESET_N */
+	PM8921_GPIO_OUTPUT(33, 0, HIGH),
+	PM8921_GPIO_OUTPUT(34, 1, MED),
+	PM8921_GPIO_INPUT(37, PM_GPIO_PULL_UP_30),	/* Tabla Detection Pin */
 };
 
 static struct pm8xxx_gpio_init pm8921_mtp_kp_gpios[] __initdata = {
-	PM8921_GPIO_INPUT(3, PM_GPIO_PULL_UP_30),
-	PM8921_GPIO_INPUT(4, PM_GPIO_PULL_UP_30),
+	PM8921_GPIO_INPUT(1, PM_GPIO_PULL_DN),
+	PM8921_GPIO_INPUT(2, PM_GPIO_PULL_DN),
+	PM8921_GPIO_OUTPUT(9, 1, HIGH),
+	PM8921_GPIO_OUTPUT(10, 1, HIGH),
 };
 
 /* Initial PM8917 GPIO configurations */
@@ -156,16 +160,8 @@ static struct pm8xxx_gpio_init pm8917_gpios[] __initdata = {
 
 /* Initial PM8XXX MPP configurations */
 static struct pm8xxx_mpp_init pm8xxx_mpps[] __initdata = {
-	PM8921_MPP_INIT(3, D_OUTPUT, PM8921_MPP_DIG_LEVEL_VPH, DOUT_CTRL_LOW),
-	/* External 5V regulator enable; shared by HDMI and USB_OTG switches. */
-	PM8921_MPP_INIT(7, D_OUTPUT, PM8921_MPP_DIG_LEVEL_VPH, DOUT_CTRL_LOW),
-	PM8921_MPP_INIT(8, D_OUTPUT, PM8921_MPP_DIG_LEVEL_S4, DOUT_CTRL_LOW),
-	/*MPP9 is used to detect docking station connection/removal on Liquid*/
-	PM8921_MPP_INIT(9, D_INPUT, PM8921_MPP_DIG_LEVEL_S4, DIN_TO_INT),
-	/* PCIE_RESET_N */
-	PM8921_MPP_INIT(1, D_OUTPUT, PM8921_MPP_DIG_LEVEL_VPH, DOUT_CTRL_HIGH),
+	PM8921_MPP_INIT(7, D_OUTPUT, PM8921_MPP_DIG_LEVEL_S4, DOUT_CTRL_LOW),
 };
-
 
 void __init apq8064_configure_gpios(struct pm8xxx_gpio_init *data, int len)
 {

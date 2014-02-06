@@ -49,6 +49,7 @@ extern int msm8064_pm8917_regulator_pdata_len __devinitdata;
 #define GPIO_VREG_ID_EXT_3P3V		1
 #define GPIO_VREG_ID_EXT_TS_SW		2
 #define GPIO_VREG_ID_EXT_MPP8		3
+#define GPIO_VREG_ID_EXT_5P4V		4
 
 #define GPIO_VREG_ID_AVC_1P2V		0
 #define GPIO_VREG_ID_AVC_1P8V		1
@@ -78,6 +79,8 @@ extern struct regulator_init_data msm8064_saw_regulator_pdata_8821_s1;
 struct mmc_platform_data;
 int __init apq8064_add_sdcc(unsigned int controller,
 		struct mmc_platform_data *plat);
+
+extern void __init xiaomi_add_backlight_devices(void);
 
 void apq8064_init_mmc(void);
 void apq8064_init_gpiomux(void);

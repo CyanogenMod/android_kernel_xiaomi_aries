@@ -253,6 +253,10 @@ VREG_CONSUMERS(EXT_TS_SW) = {
 	REGULATOR_SUPPLY("ext_ts_sw",		NULL),
 	REGULATOR_SUPPLY("vdd_ana",		"3-005b"),
 };
+VREG_CONSUMERS(EXT_5P4V) = {
+	REGULATOR_SUPPLY("ext_5p4v",	NULL),
+	REGULATOR_SUPPLY("dsi_mi_vsp",	"mipi_dsi.1"),
+};
 VREG_CONSUMERS(AVC_1P2V) = {
 	REGULATOR_SUPPLY("avc_1p2v",	NULL),
 };
@@ -559,6 +563,8 @@ apq8064_gpio_regulator_pdata[] __devinitdata = {
 		  PM8921_GPIO_PM_TO_SYS(23), "ext_3p3v"),
 	GPIO_VREG(EXT_MPP8, "ext_mpp8", "ext_mpp8_en",
 			PM8921_MPP_PM_TO_SYS(8), NULL),
+	GPIO_VREG(EXT_5P4V, "ext_5p4v", "ext_5p4v_en",
+			PM8921_GPIO_PM_TO_SYS(11), NULL),
 };
 
 struct gpio_regulator_platform_data

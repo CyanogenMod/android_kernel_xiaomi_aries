@@ -1639,14 +1639,14 @@ static struct msm_rpmrs_level msm_rpmrs_levels[] = {
 
 	{
 		MSM_PM_SLEEP_MODE_POWER_COLLAPSE,
-		MSM_RPMRS_LIMITS(ON, GDHS, MAX, ACTIVE),
+		MSM_RPMRS_LIMITS(ON, ACTIVE, MAX, ACTIVE),
 		false,
 		2000, 138, 1208400, 3200,
 	},
 
 	{
 		MSM_PM_SLEEP_MODE_POWER_COLLAPSE,
-		MSM_RPMRS_LIMITS(ON, HSFS_OPEN, ACTIVE, RET_HIGH),
+		MSM_RPMRS_LIMITS(ON, ACTIVE, ACTIVE, RET_HIGH),
 		false,
 		6000, 119, 1850300, 9000,
 	},
@@ -1702,7 +1702,7 @@ static struct msm_rpmrs_platform_data msm_rpmrs_data __initdata = {
 	.vdd_mask = 0x7FFFFF,
 	.rpmrs_target_id = {
 		[MSM_RPMRS_ID_PXO_CLK]		= MSM_RPM_ID_PXO_CLK,
-		[MSM_RPMRS_ID_L2_CACHE_CTL]	= MSM_RPM_ID_LAST,
+		[MSM_RPMRS_ID_L2_CACHE_CTL]	= MSM_RPM_ID_APPS_L2_CACHE_CTL,
 		[MSM_RPMRS_ID_VDD_DIG_0]	= MSM_RPM_ID_PM8921_S3_0,
 		[MSM_RPMRS_ID_VDD_DIG_1]	= MSM_RPM_ID_PM8921_S3_1,
 		[MSM_RPMRS_ID_VDD_MEM_0]	= MSM_RPM_ID_PM8921_L24_0,
@@ -1986,6 +1986,15 @@ static struct platform_device apq8064_device_ext_ts_sw_vreg __devinitdata = {
 	},
 };
 
+static struct platform_device apq8064_device_ext_5p4v_vreg __devinitdata = {
+	.name	= GPIO_REGULATOR_DEV_NAME,
+	.id	= PM8921_GPIO_PM_TO_SYS(11),
+	.dev	= {
+		.platform_data =
+			&apq8064_gpio_regulator_pdata[GPIO_VREG_ID_EXT_5P4V],
+	},
+};
+
 static struct platform_device apq8064_device_rpm_regulator __devinitdata = {
 	.name	= "rpm-regulator",
 	.id	= 0,
@@ -2007,12 +2016,12 @@ static struct platform_device *common_not_mpq_devices[] __initdata = {
 	&apq8064_device_qup_i2c_gsbi1,
 	&apq8064_device_qup_i2c_gsbi3,
 	&apq8064_device_qup_i2c_gsbi4,
+	&mpq8064_device_qup_i2c_gsbi5,
 };
 
 static struct platform_device *early_common_devices[] __initdata = {
 	&apq8064_device_acpuclk,
 	&apq8064_device_dmov,
-	&apq8064_device_qup_spi_gsbi5,
 };
 
 static struct platform_device *pm8921_common_devices[] __initdata = {
@@ -2022,6 +2031,7 @@ static struct platform_device *pm8921_common_devices[] __initdata = {
 	&apq8064_device_ssbi_pmic1,
 	&apq8064_device_ssbi_pmic2,
 	&apq8064_device_ext_ts_sw_vreg,
+	&apq8064_device_ext_5p4v_vreg,
 };
 
 static struct platform_device *pm8917_common_devices[] __initdata = {
@@ -2201,17 +2211,17 @@ static struct slim_boardinfo apq8064_slim_devices[] = {
 };
 
 static struct msm_i2c_platform_data apq8064_i2c_qup_gsbi1_pdata = {
-	.clk_freq = 100000,
+	.clk_freq = 400000,
 	.src_clk_rate = 24000000,
 };
 
 static struct msm_i2c_platform_data apq8064_i2c_qup_gsbi3_pdata = {
-	.clk_freq = 384000,
+	.clk_freq = 400000,
 	.src_clk_rate = 24000000,
 };
 
 static struct msm_i2c_platform_data apq8064_i2c_qup_gsbi4_pdata = {
-	.clk_freq = 100000,
+	.clk_freq = 400000,
 	.src_clk_rate = 24000000,
 };
 
@@ -2222,12 +2232,12 @@ static struct msm_i2c_platform_data mpq8064_i2c_qup_gsbi5_pdata = {
 
 #define GSBI_DUAL_MODE_CODE 0x60
 #define MSM_GSBI1_PHYS		0x12440000
+#define MSM_GSBI5_PHYS		0x1A200000
 static void __init apq8064_i2c_init(void)
 {
 	void __iomem *gsbi_mem;
+	struct clk *ifclk;
 
-	apq8064_device_qup_i2c_gsbi1.dev.platform_data =
-					&apq8064_i2c_qup_gsbi1_pdata;
 	gsbi_mem = ioremap_nocache(MSM_GSBI1_PHYS, 4);
 	writel_relaxed(GSBI_DUAL_MODE_CODE, gsbi_mem);
 	/* Ensure protocol code is written before proceeding */
@@ -2240,6 +2250,21 @@ static void __init apq8064_i2c_init(void)
 					&apq8064_i2c_qup_gsbi1_pdata;
 	apq8064_device_qup_i2c_gsbi4.dev.platform_data =
 					&apq8064_i2c_qup_gsbi4_pdata;
+
+	ifclk = clk_get_sys("msm_serial_hs.2", "iface_clk");
+	if (IS_ERR(ifclk))
+		printk("%s: get clk for msm_serial_hs.2 failed\n", __func__);
+	else {
+		clk_set_rate(ifclk, 1843200);
+		clk_prepare_enable(ifclk);
+		gsbi_mem = ioremap_nocache(MSM_GSBI5_PHYS, 4);
+		writel_relaxed(GSBI_DUAL_MODE_CODE, gsbi_mem);
+		/* Ensure protocol code is written before proceeding */
+		wmb();
+		iounmap(gsbi_mem);
+		clk_disable_unprepare(ifclk);
+	}
+	mpq8064_i2c_qup_gsbi5_pdata.use_gsbi_shared_mode = 1;
 	mpq8064_device_qup_i2c_gsbi5.dev.platform_data =
 					&mpq8064_i2c_qup_gsbi5_pdata;
 }
@@ -2589,6 +2614,7 @@ static void __init apq8064_aries_init(void)
 		pr_err("meminfo_init() failed!\n");
 	apq8064_common_init();
 	xiaomi_add_ramconsole_devices();
+	xiaomi_add_backlight_devices();
 	ethernet_init();
 	msm_rotator_set_split_iommu_domain();
 	platform_add_devices(cdp_devices, ARRAY_SIZE(cdp_devices));
