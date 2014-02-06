@@ -655,7 +655,7 @@ static int mdp_lut_update_lcdc(struct fb_info *info, struct fb_cmap *cmap)
 #ifdef CONFIG_UPDATE_LCDC_LUT
 int mdp_preset_lut_update_lcdc(struct fb_cmap *cmap, uint32_t *internal_lut)
 {
-	uint32_t out;
+	unsigned long flags;
 	int i;
 	u16 r, g, b;
 
@@ -671,18 +671,25 @@ int mdp_preset_lut_update_lcdc(struct fb_cmap *cmap, uint32_t *internal_lut)
 		g = scaled_by_kcal(g, *(cmap->green));
 		b = scaled_by_kcal(b, *(cmap->blue));
 #endif
+
+#ifdef CONFIG_FB_MSM_MDP40
 		MDP_OUTP(MDP_BASE + 0x94800 +
+#else
+		MDP_OUTP(MDP_BASE + 0x93800 +
+#endif
 			(0x400*mdp_lut_i) + cmap->start*4 + i*4,
 				((g & 0xff) |
 				 ((b & 0xff) << 8) |
 				 ((r & 0xff) << 16)));
 	}
 
-	/*mask off non LUT select bits*/
-	out = inpdw(MDP_BASE + 0x90070) & ~((0x1 << 10) | 0x7);
-	MDP_OUTP(MDP_BASE + 0x90070, (mdp_lut_i << 10) | 0x7 | out);
 	mdp_clk_ctrl(0);
 	mdp_pipe_ctrl(MDP_CMD_BLOCK, MDP_BLOCK_POWER_OFF, FALSE);
+
+	spin_lock_irqsave(&mdp_lut_push_lock, flags);
+	mdp_lut_push = 1;
+	mdp_lut_push_i = mdp_lut_i;
+	spin_unlock_irqrestore(&mdp_lut_push_lock, flags);
 	mdp_lut_i = (mdp_lut_i + 1)%2;
 
 	return 0;
