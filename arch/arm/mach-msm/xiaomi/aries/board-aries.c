@@ -2269,168 +2269,6 @@ static void __init apq8064_i2c_init(void)
 					&mpq8064_i2c_qup_gsbi5_pdata;
 }
 
-#if defined(CONFIG_KS8851) || defined(CONFIG_KS8851_MODULE)
-static int ethernet_init(void)
-{
-	int ret;
-	ret = gpio_request(KS8851_IRQ_GPIO, "ks8851_irq");
-	if (ret) {
-		pr_err("ks8851 gpio_request failed: %d\n", ret);
-		goto fail;
-	}
-
-	return 0;
-fail:
-	return ret;
-}
-#else
-static int ethernet_init(void)
-{
-	return 0;
-}
-#endif
-
-#define GPIO_KEY_HOME			PM8921_GPIO_PM_TO_SYS(27)
-#define GPIO_KEY_VOLUME_UP		PM8921_GPIO_PM_TO_SYS(35)
-#define GPIO_KEY_VOLUME_DOWN_PM8921	PM8921_GPIO_PM_TO_SYS(38)
-#define GPIO_KEY_VOLUME_DOWN_PM8917	PM8921_GPIO_PM_TO_SYS(30)
-#define GPIO_KEY_CAM_FOCUS		PM8921_GPIO_PM_TO_SYS(3)
-#define GPIO_KEY_CAM_SNAP		PM8921_GPIO_PM_TO_SYS(4)
-#define GPIO_KEY_ROTATION_PM8921	PM8921_GPIO_PM_TO_SYS(42)
-#define GPIO_KEY_ROTATION_PM8917	PM8921_GPIO_PM_TO_SYS(8)
-
-static struct gpio_keys_button cdp_keys_pm8921[] = {
-	{
-		.code           = KEY_HOME,
-		.gpio           = GPIO_KEY_HOME,
-		.desc           = "home_key",
-		.active_low     = 1,
-		.type		= EV_KEY,
-		.wakeup		= 1,
-		.debounce_interval = 15,
-	},
-	{
-		.code           = KEY_VOLUMEUP,
-		.gpio           = GPIO_KEY_VOLUME_UP,
-		.desc           = "volume_up_key",
-		.active_low     = 1,
-		.type		= EV_KEY,
-		.wakeup		= 1,
-		.debounce_interval = 15,
-	},
-	{
-		.code           = KEY_VOLUMEDOWN,
-		.gpio           = GPIO_KEY_VOLUME_DOWN_PM8921,
-		.desc           = "volume_down_key",
-		.active_low     = 1,
-		.type		= EV_KEY,
-		.wakeup		= 1,
-		.debounce_interval = 15,
-	},
-	{
-		.code           = SW_ROTATE_LOCK,
-		.gpio           = GPIO_KEY_ROTATION_PM8921,
-		.desc           = "rotate_key",
-		.active_low     = 1,
-		.type		= EV_SW,
-		.debounce_interval = 15,
-	},
-};
-
-static struct gpio_keys_button cdp_keys_pm8917[] = {
-	{
-		.code           = KEY_HOME,
-		.gpio           = GPIO_KEY_HOME,
-		.desc           = "home_key",
-		.active_low     = 1,
-		.type		= EV_KEY,
-		.wakeup		= 1,
-		.debounce_interval = 15,
-	},
-	{
-		.code           = KEY_VOLUMEUP,
-		.gpio           = GPIO_KEY_VOLUME_UP,
-		.desc           = "volume_up_key",
-		.active_low     = 1,
-		.type		= EV_KEY,
-		.wakeup		= 1,
-		.debounce_interval = 15,
-	},
-	{
-		.code           = KEY_VOLUMEDOWN,
-		.gpio           = GPIO_KEY_VOLUME_DOWN_PM8917,
-		.desc           = "volume_down_key",
-		.active_low     = 1,
-		.type		= EV_KEY,
-		.wakeup		= 1,
-		.debounce_interval = 15,
-	},
-	{
-		.code           = SW_ROTATE_LOCK,
-		.gpio           = GPIO_KEY_ROTATION_PM8917,
-		.desc           = "rotate_key",
-		.active_low     = 1,
-		.type		= EV_SW,
-		.debounce_interval = 15,
-	},
-};
-
-static struct gpio_keys_platform_data cdp_keys_data = {
-	.buttons        = cdp_keys_pm8921,
-	.nbuttons       = ARRAY_SIZE(cdp_keys_pm8921),
-};
-
-static struct gpio_keys_button mtp_keys[] = {
-	{
-		.code           = KEY_CAMERA_FOCUS,
-		.gpio           = GPIO_KEY_CAM_FOCUS,
-		.desc           = "cam_focus_key",
-		.active_low     = 1,
-		.type		= EV_KEY,
-		.wakeup		= 1,
-		.debounce_interval = 15,
-	},
-	{
-		.code           = KEY_VOLUMEUP,
-		.gpio           = GPIO_KEY_VOLUME_UP,
-		.desc           = "volume_up_key",
-		.active_low     = 1,
-		.type		= EV_KEY,
-		.wakeup		= 1,
-		.debounce_interval = 15,
-	},
-	{
-		.code           = KEY_VOLUMEDOWN,
-		.gpio           = GPIO_KEY_VOLUME_DOWN_PM8921,
-		.desc           = "volume_down_key",
-		.active_low     = 1,
-		.type		= EV_KEY,
-		.wakeup		= 1,
-		.debounce_interval = 15,
-	},
-	{
-		.code           = KEY_CAMERA_SNAPSHOT,
-		.gpio           = GPIO_KEY_CAM_SNAP,
-		.desc           = "cam_snap_key",
-		.active_low     = 1,
-		.type		= EV_KEY,
-		.debounce_interval = 15,
-	},
-};
-
-static struct gpio_keys_platform_data mtp_keys_data = {
-	.buttons        = mtp_keys,
-	.nbuttons       = ARRAY_SIZE(mtp_keys),
-};
-
-static struct platform_device mtp_kp_pdev = {
-	.name           = "gpio-keys",
-	.id             = -1,
-	.dev            = {
-		.platform_data  = &mtp_keys_data,
-	},
-};
-
 /* Sensors DSPS platform data */
 #define DSPS_PIL_GENERIC_NAME		"dsps"
 static void __init apq8064_init_dsps(void)
@@ -2479,13 +2317,6 @@ static void __init register_i2c_devices(void)
 #endif
 }
 
-/* Modify platform data values to match requirements for PM8917. */
-static void __init apq8064_pm8917_pdata_fixup(void)
-{
-	cdp_keys_data.buttons = cdp_keys_pm8917;
-	cdp_keys_data.nbuttons = ARRAY_SIZE(cdp_keys_pm8917);
-}
-
 static void __init apq8064ab_update_retention_spm(void)
 {
 	int i;
@@ -2507,8 +2338,6 @@ static void __init apq8064_common_init(void)
 {
 	u32 platform_version = socinfo_get_platform_version();
 
-	if (socinfo_get_pmic_model() == PMIC_MODEL_PM8917)
-		apq8064_pm8917_pdata_fixup();
 	platform_device_register(&msm_gpio_device);
 	if (cpu_is_apq8064ab())
 		apq8064ab_update_krait_spm();
@@ -2615,7 +2444,6 @@ static void __init apq8064_aries_init(void)
 	apq8064_common_init();
 	xiaomi_add_ramconsole_devices();
 	xiaomi_add_backlight_devices();
-	ethernet_init();
 	msm_rotator_set_split_iommu_domain();
 	platform_add_devices(cdp_devices, ARRAY_SIZE(cdp_devices));
 	spi_register_board_info(spi_board_info,
@@ -2627,8 +2455,6 @@ static void __init apq8064_aries_init(void)
 #ifdef CONFIG_MSM_CAMERA
 	apq8064_init_cam();
 #endif
-
-	platform_device_register(&mtp_kp_pdev);
 }
 
 MACHINE_START(APQ8064_ARIES, "QCT APQ8064 ARIES")
