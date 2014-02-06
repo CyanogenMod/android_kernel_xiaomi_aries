@@ -11,13 +11,11 @@
  *
  */
 #include <linux/kernel.h>
-#include <linux/bitops.h>
 #include <linux/platform_device.h>
 #include <linux/gpio.h>
 #include <linux/io.h>
 #include <linux/irq.h>
 #include <linux/i2c.h>
-#include <linux/i2c/smb349.h>
 #include <linux/i2c/sx150x.h>
 #include <linux/slimbus/slimbus.h>
 #include <linux/mfd/wcd9xxx/core.h>
@@ -32,12 +30,9 @@
 #include <linux/memory.h>
 #include <linux/memblock.h>
 #include <linux/msm_thermal.h>
-#include <linux/i2c/atmel_mxt_ts.h>
-#include <linux/cyttsp-qc.h>
 #include <linux/i2c/isa1200.h>
 #include <linux/gpio_keys.h>
 #include <linux/epm_adc.h>
-#include <linux/i2c/sx150x.h>
 #include <asm/mach-types.h>
 #include <asm/mach/arch.h>
 #include <asm/hardware/gic.h>
@@ -1197,117 +1192,6 @@ static struct i2c_board_info isa1200_board_info[] __initdata = {
 	{
 		I2C_BOARD_INFO("isa1200_1", 0x90>>1),
 		.platform_data = &isa1200_1_pdata,
-	},
-};
-
-#define CYTTSP_TS_GPIO_IRQ		6
-#define CYTTSP_TS_GPIO_SLEEP		33
-#define CYTTSP_TS_GPIO_SLEEP_ALT	12
-
-static ssize_t tma340_vkeys_show(struct kobject *kobj,
-			struct kobj_attribute *attr, char *buf)
-{
-	return snprintf(buf, 200,
-	__stringify(EV_KEY) ":" __stringify(KEY_BACK) ":73:1120:97:97"
-	":" __stringify(EV_KEY) ":" __stringify(KEY_MENU) ":230:1120:97:97"
-	":" __stringify(EV_KEY) ":" __stringify(KEY_HOME) ":389:1120:97:97"
-	":" __stringify(EV_KEY) ":" __stringify(KEY_SEARCH) ":544:1120:97:97"
-	"\n");
-}
-
-static struct kobj_attribute tma340_vkeys_attr = {
-	.attr = {
-		.mode = S_IRUGO,
-	},
-	.show = &tma340_vkeys_show,
-};
-
-static struct attribute *tma340_properties_attrs[] = {
-	&tma340_vkeys_attr.attr,
-	NULL
-};
-
-static struct attribute_group tma340_properties_attr_group = {
-	.attrs = tma340_properties_attrs,
-};
-
-static int cyttsp_platform_init(struct i2c_client *client)
-{
-	int rc = 0;
-	static struct kobject *tma340_properties_kobj;
-
-	tma340_vkeys_attr.attr.name = "virtualkeys.cyttsp-i2c";
-	tma340_properties_kobj = kobject_create_and_add("board_properties",
-								NULL);
-	if (tma340_properties_kobj)
-		rc = sysfs_create_group(tma340_properties_kobj,
-					&tma340_properties_attr_group);
-	if (!tma340_properties_kobj || rc)
-		pr_err("%s: failed to create board_properties\n",
-				__func__);
-
-	return 0;
-}
-
-static struct cyttsp_regulator cyttsp_regulator_data[] = {
-	{
-		.name = "vdd",
-		.min_uV = CY_TMA300_VTG_MIN_UV,
-		.max_uV = CY_TMA300_VTG_MAX_UV,
-		.hpm_load_uA = CY_TMA300_CURR_24HZ_UA,
-		.lpm_load_uA = CY_TMA300_CURR_24HZ_UA,
-	},
-	{
-		.name = "vcc_i2c",
-		.min_uV = CY_I2C_VTG_MIN_UV,
-		.max_uV = CY_I2C_VTG_MAX_UV,
-		.hpm_load_uA = CY_I2C_CURR_UA,
-		.lpm_load_uA = CY_I2C_CURR_UA,
-	},
-};
-
-static struct cyttsp_platform_data cyttsp_pdata = {
-	.panel_maxx = 634,
-	.panel_maxy = 1166,
-	.disp_minx = 18,
-	.disp_maxx = 617,
-	.disp_miny = 18,
-	.disp_maxy = 1041,
-	.flags = 0x01,
-	.gen = CY_GEN3,
-	.use_st = CY_USE_ST,
-	.use_mt = CY_USE_MT,
-	.use_hndshk = CY_SEND_HNDSHK,
-	.use_trk_id = CY_USE_TRACKING_ID,
-	.use_sleep = CY_USE_DEEP_SLEEP_SEL,
-	.use_gestures = CY_USE_GESTURES,
-	.fw_fname = "cyttsp_8064_mtp.hex",
-	/* change act_intrvl to customize the Active power state
-	 * scanning/processing refresh interval for Operating mode
-	 */
-	.act_intrvl = CY_ACT_INTRVL_DFLT,
-	/* change tch_tmout to customize the touch timeout for the
-	 * Active power state for Operating mode
-	 */
-	.tch_tmout = CY_TCH_TMOUT_DFLT,
-	/* change lp_intrvl to customize the Low Power power state
-	 * scanning/processing refresh interval for Operating mode
-	 */
-	.lp_intrvl = CY_LP_INTRVL_DFLT,
-	.sleep_gpio = CYTTSP_TS_GPIO_SLEEP,
-	.resout_gpio = -1,
-	.irq_gpio = CYTTSP_TS_GPIO_IRQ,
-	.regulator_info = cyttsp_regulator_data,
-	.num_regulators = ARRAY_SIZE(cyttsp_regulator_data),
-	.init = cyttsp_platform_init,
-	.correct_fw_ver = 17,
-};
-
-static struct i2c_board_info cyttsp_info[] __initdata = {
-	{
-		I2C_BOARD_INFO(CY_I2C_NAME, 0x24),
-		.platform_data = &cyttsp_pdata,
-		.irq = MSM_GPIO_TO_INT(CYTTSP_TS_GPIO_IRQ),
 	},
 };
 
@@ -2535,29 +2419,7 @@ static void __init apq8064_init_dsps(void)
 	platform_device_register(&msm_dsps_device_8064);
 }
 
-#define I2C_SURF 1
-#define I2C_FFA  (1 << 1)
-#define I2C_RUMI (1 << 2)
-#define I2C_SIM  (1 << 3)
-#define I2C_LIQUID (1 << 4)
-#define I2C_MPQ_CDP	BIT(5)
-#define I2C_MPQ_HRD	BIT(6)
-#define I2C_MPQ_DTV	BIT(7)
-
-struct i2c_registry {
-	u8                     machs;
-	int                    bus;
-	struct i2c_board_info *info;
-	int                    len;
-};
-
 static struct i2c_registry apq8064_i2c_devices[] __initdata = {
-	{
-		I2C_FFA,
-		APQ_8064_GSBI3_QUP_I2C_BUS_ID,
-		cyttsp_info,
-		ARRAY_SIZE(cyttsp_info),
-	},
 	{
 		I2C_FFA,
 		APQ_8064_GSBI1_QUP_I2C_BUS_ID,
@@ -2725,8 +2587,6 @@ static void __init apq8064_aries_init(void)
 	printk(KERN_NOTICE "MIDR      = 0x%08x\n", read_cpuid_id());
 	if (meminfo_init(SYS_MEMORY, SZ_256M) < 0)
 		pr_err("meminfo_init() failed!\n");
-	if (SOCINFO_VERSION_MINOR(socinfo_get_platform_version()) == 1)
-			cyttsp_pdata.sleep_gpio = CYTTSP_TS_GPIO_SLEEP_ALT;
 	apq8064_common_init();
 	xiaomi_add_ramconsole_devices();
 	ethernet_init();

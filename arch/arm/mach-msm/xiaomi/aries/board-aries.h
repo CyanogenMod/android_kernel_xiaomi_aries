@@ -149,4 +149,20 @@ enum {
 
 extern struct msm_rtb_platform_data apq8064_rtb_pdata;
 extern struct msm_cache_dump_platform_data apq8064_cache_dump_pdata;
+
+#define I2C_SURF 1
+#define I2C_FFA  (1 << 1)
+#define I2C_RUMI (1 << 2)
+#define I2C_SIM  (1 << 3)
+#define I2C_LIQUID (1 << 4)
+#define I2C_MPQ_CDP	BIT(5)
+#define I2C_MPQ_HRD	BIT(6)
+#define I2C_MPQ_DTV	BIT(7)
+
+struct i2c_registry {
+	u8                     machs;
+	int                    bus;
+	struct i2c_board_info *info;
+	int                    len;
+};
 #endif
