@@ -309,6 +309,7 @@ obj-$(CONFIG_MACH_SAPPHIRE) += board-sapphire-rfkill.o msm_vibrator.o
 
 obj-$(CONFIG_MACH_LGE) += lge/
 obj-$(CONFIG_MACH_ASUSTEK) += asustek/
+obj-$(CONFIG_MACH_XIAOMI) += xiaomi/
 
 CFLAGS_msm_vibrator.o += -Idrivers/staging/android
 CFLAGS_board-9615.o += -Idrivers/usb/gadget

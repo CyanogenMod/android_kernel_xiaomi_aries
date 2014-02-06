@@ -1,0 +1,8 @@
+#
+# Inlcude the specific Kconfig file for XIAOMI board
+#
+# ARIES
+source "arch/arm/mach-msm/xiaomi/aries/Kconfig"
+
+config MACH_XIAOMI_DUMMY
+	bool "NONE (No device)"

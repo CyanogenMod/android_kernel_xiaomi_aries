@@ -1,0 +1,6 @@
+config MACH_XIAOMI
+	bool
+
+menu "XIAOMI Board Selection"
+source "arch/arm/mach-msm/xiaomi/Kconfig.board"
+endmenu

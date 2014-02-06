@@ -919,6 +919,7 @@ endmenu
 
 source "arch/arm/mach-msm/lge/Kconfig"
 source "arch/arm/mach-msm/asustek/Kconfig"
+source "arch/arm/mach-msm/xiaomi/Kconfig"
 
 config MSM_STACKED_MEMORY
 	bool "Stacked Memory"
