@@ -69,3 +69,15 @@ void __init xiaomi_add_ramconsole_devices(void)
 	platform_device_register(&ram_console_device);
 }
 #endif /* CONFIG_ANDROID_RAM_CONSOLE */
+
+#ifdef CONFIG_XIAOMI_PRIMACONFIG_INTERFACE
+static struct platform_device primaconfig_device = {
+	.name = "primaconfig",
+	.id = -1,
+};
+void __init xiaomi_add_primaconfig_devices(void)
+{
+	platform_device_register(&primaconfig_device);
+}
+#endif /* CONFIG_XIAOMI_PRIMACONFIG_INTERFACE */
+

@@ -4,3 +4,15 @@ config MACH_XIAOMI
 menu "XIAOMI Board Selection"
 source "arch/arm/mach-msm/xiaomi/Kconfig.board"
 endmenu
+
+
+menu "XIAOMI Specific Patches"
+
+config XIAOMI_PRIMACONFIG_INTERFACE
+	bool "Support primaconfig interface"
+	default n
+	depends on MACH_XIAOMI
+	help
+	  Interface to set mac address for prima wlan driver from userspace
+
+endmenu

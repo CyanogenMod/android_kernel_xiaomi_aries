@@ -123,6 +123,9 @@ int wlan_hdd_ftm_start(hdd_context_t *pAdapter);
 #ifdef FEATURE_WLAN_TDLS
 #include "wlan_hdd_tdls.h"
 #endif
+#ifdef CONFIG_XIAOMI_PRIMACONFIG_INTERFACE
+#include <linux/xiaomi_primaconfig.h>
+#endif
 
 #ifdef MODULE
 #define WLAN_MODULE_NAME  module_name(THIS_MODULE)
@@ -5456,8 +5459,31 @@ int hdd_wlan_startup(struct device *dev )
 #endif
    int ret;
    struct wiphy *wiphy;
+#ifdef CONFIG_XIAOMI_PRIMACONFIG_INTERFACE
+   int sleep_time = 500;
+   int time_slept = 0;
+#endif
 
    ENTER();
+
+#ifdef CONFIG_XIAOMI_PRIMACONFIG_INTERFACE
+   while(true) {
+      if(mac_address_isset())
+         break;
+
+      pr_info("wlan: waiting for custom mac\n");
+
+      // for the case sth went wront
+      if(time_slept>=10000) {
+         pr_info("wlan: still didn't get custom mac. set sleep_time to 60s\n");
+         sleep_time = 60000;
+      }
+
+      time_slept+=sleep_time;
+      msleep(sleep_time);
+   }
+#endif
+
    /*
     * cfg80211: wiphy allocation
     */
@@ -5734,6 +5760,16 @@ int hdd_wlan_startup(struct device *dev )
    }
    {
       eHalStatus halStatus;
+
+#ifdef CONFIG_XIAOMI_PRIMACONFIG_INTERFACE
+      if(!(custom_mac_address.bytes[0]==0 && custom_mac_address.bytes[1]==0 &&
+         custom_mac_address.bytes[2]==0 && custom_mac_address.bytes[3]==0 &&
+         custom_mac_address.bytes[4]==0 && custom_mac_address.bytes[5]==0)) {
+         pHddCtx->cfg_ini->intfMacAddr[0] = custom_mac_address;
+         pr_info("wlan: using custom mac: "MAC_ADDRESS_STR"\n", MAC_ADDR_ARRAY(pHddCtx->cfg_ini->intfMacAddr[0].bytes));
+      }
+#endif
+
       // Set the MAC Address
       // Currently this is used by HAL to add self sta. Remove this once self sta is added as part of session open.
       halStatus = cfgSetStr( pHddCtx->hHal, WNI_CFG_STA_ID,

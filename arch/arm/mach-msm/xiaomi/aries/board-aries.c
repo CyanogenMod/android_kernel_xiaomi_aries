@@ -2326,6 +2326,9 @@ static void __init apq8064_aries_init(void)
 	xiaomi_add_ramconsole_devices();
 	xiaomi_add_backlight_devices();
 	xiaomi_add_sound_devices();
+#ifdef CONFIG_XIAOMI_PRIMACONFIG_INTERFACE
+	xiaomi_add_primaconfig_devices();
+#endif
 	msm_rotator_set_split_iommu_domain();
 	platform_add_devices(cdp_devices, ARRAY_SIZE(cdp_devices));
 	spi_register_board_info(spi_board_info,
