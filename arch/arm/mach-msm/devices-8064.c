@@ -63,6 +63,7 @@
 #define MSM_UART1DM_PHYS	(MSM_GSBI1_PHYS + 0x10000)
 #define MSM_UART3DM_PHYS	(MSM_GSBI3_PHYS + 0x40000)
 #define MSM_UART4DM_PHYS	(MSM_GSBI4_PHYS + 0x40000)
+#define MSM_UART5DM_PHYS	(MSM_GSBI5_PHYS + 0x40000)
 #define MSM_UART6DM_PHYS	(MSM_GSBI6_PHYS + 0x40000)
 #define MSM_UART7DM_PHYS	(MSM_GSBI7_PHYS + 0x40000)
 
@@ -473,6 +474,50 @@ struct platform_device mpq8064_device_qup_i2c_gsbi5 = {
 	.id		= 5,
 	.num_resources	= ARRAY_SIZE(resources_qup_i2c_gsbi5),
 	.resource	= resources_qup_i2c_gsbi5,
+};
+
+static struct resource resources_uart_gsbi5[] = {
+	{
+		.start	= GSBI5_UARTDM_IRQ,
+		.end	= GSBI5_UARTDM_IRQ,
+		.flags	= IORESOURCE_IRQ,
+	},
+	{
+		.start	= MSM_UART5DM_PHYS,
+		.end	= MSM_UART5DM_PHYS + PAGE_SIZE - 1,
+		.name	= "uartdm_resource",
+		.flags	= IORESOURCE_MEM,
+	},
+	{
+		.start	= MSM_GSBI5_PHYS,
+		.end	= MSM_GSBI5_PHYS + PAGE_SIZE - 1,
+		.name	= "gsbi_resource",
+		.flags	= IORESOURCE_MEM,
+	},
+	{
+		.start	= DMOV_HSUART_GSBI5_TX_CHAN,
+		.end    = DMOV_HSUART_GSBI5_RX_CHAN,
+		.name   = "uartdm_channels",
+		.flags  = IORESOURCE_DMA,
+	},
+	{
+		.start  = DMOV_HSUART_GSBI5_RX_CRCI,
+		.end    = DMOV_HSUART_GSBI5_TX_CRCI,
+		.name   = "uartdm_crci",
+		.flags  = IORESOURCE_DMA,
+	},
+};
+
+static u64 msm_uart_gsbi5_dma_mask = DMA_BIT_MASK(32);
+struct platform_device apq8064_device_uart_gsbi5 = {
+	.name	= "msm_serial_hs",
+	.id	= 2,
+	.num_resources	= ARRAY_SIZE(resources_uart_gsbi5),
+	.resource	= resources_uart_gsbi5,
+	.dev	= {
+		.dma_mask		= &msm_uart_gsbi5_dma_mask,
+		.coherent_dma_mask	= DMA_BIT_MASK(32),
+	},
 };
 
 static struct resource resources_uart_gsbi7[] = {
