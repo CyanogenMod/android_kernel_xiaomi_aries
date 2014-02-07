@@ -77,10 +77,6 @@ static struct resource msm_fb_resources[] = {
 
 #define MIPI_CMD_HITACHI_720P_PANEL_NAME "mipi_cmd_hitachi_720p"
 #define HDMI_PANEL_NAME "hdmi_msm"
-#define MHL_PANEL_NAME "hdmi_msm,mhl_8334"
-
-#define LVDS_PIXEL_MAP_PATTERN_1	1
-#define LVDS_PIXEL_MAP_PATTERN_2	2
 
 #ifdef CONFIG_FB_MSM_HDMI_AS_PRIMARY
 static unsigned char hdmi_is_primary = 1;
@@ -88,16 +84,9 @@ static unsigned char hdmi_is_primary = 1;
 static unsigned char hdmi_is_primary;
 #endif
 
-static unsigned char mhl_display_enabled;
-
 unsigned char apq8064_hdmi_as_primary_selected(void)
 {
 	return hdmi_is_primary;
-}
-
-unsigned char apq8064_mhl_display_enabled(void)
-{
-	return mhl_display_enabled;
 }
 
 static void set_mdp_clocks_for_wuxga(void);
@@ -530,43 +519,6 @@ static int hdmi_panel_power(int on)
 
 static int hdmi_enable_5v(int on)
 {
-	/* TBD: PM8921 regulator instead of 8901 */
-	static struct regulator *reg_8921_hdmi_mvs;	/* HDMI_5V */
-	static int prev_on;
-	int rc;
-
-	if (on == prev_on)
-		return 0;
-
-	if (!reg_8921_hdmi_mvs) {
-		reg_8921_hdmi_mvs = regulator_get(&hdmi_msm_device.dev,
-			"hdmi_mvs");
-		if (IS_ERR(reg_8921_hdmi_mvs)) {
-			pr_err("could not get reg_8921_hdmi_mvs, rc = %ld\n",
-				PTR_ERR(reg_8921_hdmi_mvs));
-			reg_8921_hdmi_mvs = NULL;
-			return -ENODEV;
-		}
-	}
-
-	if (on) {
-		rc = regulator_enable(reg_8921_hdmi_mvs);
-		if (rc) {
-			pr_err("'%s' regulator enable failed, rc=%d\n",
-				"8921_hdmi_mvs", rc);
-			return rc;
-		}
-		pr_debug("%s(on): success\n", __func__);
-	} else {
-		rc = regulator_disable(reg_8921_hdmi_mvs);
-		if (rc)
-			pr_warning("'%s' regulator disable failed, rc=%d\n",
-				"8921_hdmi_mvs", rc);
-		pr_debug("%s(off): success\n", __func__);
-	}
-
-	prev_on = on;
-
 	return 0;
 }
 
@@ -948,15 +900,7 @@ void __init apq8064_set_display_params(char *prim_panel, char *ext_panel,
 			PANEL_NAME_MAX_LEN);
 		pr_debug("msm_fb_pdata.ext_panel_name %s\n",
 			msm_fb_pdata.ext_panel_name);
-
-		if (!strncmp((char *)msm_fb_pdata.ext_panel_name,
-			MHL_PANEL_NAME, strnlen(MHL_PANEL_NAME,
-				PANEL_NAME_MAX_LEN))) {
-			pr_debug("MHL is external display by boot parameter\n");
-			mhl_display_enabled = 1;
-		}
 	}
 
 	msm_fb_pdata.ext_resolution = resolution;
-	hdmi_msm_data.is_mhl_enabled = mhl_display_enabled;
 }
