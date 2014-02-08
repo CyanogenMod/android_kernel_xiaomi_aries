@@ -30,8 +30,14 @@
 
 static struct msm_panel_common_pdata *mipi_hitachi_pdata;
 
+struct dsi_cmd_desc local_power_on_set_2[5];
 static struct dsi_buf hitachi_tx_buf;
 static struct dsi_buf hitachi_rx_buf;
+static struct msm_fb_data_type *local_mfd;
+static int lcd_isactive = 0;
+
+static ssize_t kgamma_apply_store(struct device *dev, struct device_attribute *attr,
+						const char *buf, size_t count);
 
 static int mipi_hitachi_lcd_on(struct platform_device *pdev)
 {
@@ -41,6 +47,7 @@ static int mipi_hitachi_lcd_on(struct platform_device *pdev)
 	pr_info("%s started\n", __func__);
 
 	mfd = platform_get_drvdata(pdev);
+	local_mfd = mfd;
 	if (!mfd)
 		return -ENODEV;
 	if (mfd->key != MFD_KEY)
@@ -50,6 +57,7 @@ static int mipi_hitachi_lcd_on(struct platform_device *pdev)
 	backlight_brightness_set(0);
 #endif
 
+	lcd_isactive = 1;
 	MIPI_OUTP(MIPI_DSI_BASE + 0x38, 0x10000000);
 	ret = mipi_dsi_cmds_tx(&hitachi_tx_buf,
 			mipi_hitachi_pdata->power_on_set_1,
@@ -59,6 +67,8 @@ static int mipi_hitachi_lcd_on(struct platform_device *pdev)
 		pr_err("%s: failed to transmit power_on_set_1 cmds\n", __func__);
 		return ret;
 	}
+
+	kgamma_apply_store(NULL, NULL, NULL, 0);
 
 	pr_info("%s finished\n", __func__);
 	return 0;
@@ -82,6 +92,8 @@ static int mipi_hitachi_lcd_off(struct platform_device *pdev)
 	if (mfd->key != MFD_KEY)
 		return -EINVAL;
 
+	lcd_isactive = 0;
+
 	MIPI_OUTP(MIPI_DSI_BASE + 0x38, 0x10000000);
 	ret = mipi_dsi_cmds_tx(&hitachi_tx_buf,
 			mipi_hitachi_pdata->power_off_set_1,
@@ -102,6 +114,11 @@ static int mipi_hitachi_lcd_off(struct platform_device *pdev)
 static void mipi_hitachi_lcd_shutdown(void)
 {
 	int ret = 0;
+
+	if(local_mfd && !local_mfd->panel_power_on) {
+		pr_info("%s:panel is already off\n", __func__);
+		return;
+	}
 
 	MIPI_OUTP(MIPI_DSI_BASE + 0x38, 0x10000000);
 	ret = mipi_dsi_cmds_tx(&hitachi_tx_buf,
@@ -132,18 +149,183 @@ struct syscore_ops panel_syscore_ops = {
 	.shutdown = mipi_hitachi_lcd_shutdown,
 };
 
+/******************* Begin sysfs interface *******************/
+
+static unsigned int calc_checksum(int intArr[]) {
+	int i = 0;
+	unsigned int chksum = 0;
+
+	for (i=1; i<13; i++)
+		chksum += intArr[i];
+
+	return chksum;
+}
+
+static ssize_t do_kgamma_store(struct device *dev, struct device_attribute *attr,
+				const char *buf, size_t count,
+				unsigned int offset)
+{
+	int kgamma[13];
+	int i;
+
+	printk("%s: buf: %s\n", __func__, buf);
+
+	sscanf(buf, "%d %d %d %d %d %d %d %d %d %d %d %d %d",
+		&kgamma[0], &kgamma[1], &kgamma[2], &kgamma[3],
+		&kgamma[4], &kgamma[5], &kgamma[6], &kgamma[7],
+		&kgamma[8], &kgamma[9], &kgamma[10],&kgamma[11],
+		&kgamma[12]);
+
+	for (i=1; i<13; i++) {
+		if (kgamma[i] > 255) {
+			pr_info("char values  can't be over 255, got %d instead!", kgamma[i]);
+			return -EINVAL;
+		}
+	}
+
+	if (calc_checksum(kgamma) == (unsigned int) kgamma[0]) {
+		kgamma[0] = 0xc7 + offset;
+		for (i=0; i<13; i++) {
+			pr_info("kgamma_p [%d] => %d \n", i, kgamma[i]);
+			local_power_on_set_2[1+offset].payload[i] = kgamma[i];
+
+			if(i>0)
+				local_power_on_set_2[1+offset].payload[12+i] = kgamma[i];
+		}
+		return count;
+	}
+	return -EINVAL;
+}
+
+static ssize_t do_kgamma_show(struct device *dev, struct device_attribute *attr,
+				char *buf, unsigned int offset)
+{
+	int kgamma[13];
+	int i;
+
+	for (i=1; i<13; i++)
+		kgamma[i] = local_power_on_set_2[1+offset].payload[i];
+
+	kgamma[0] = (int) calc_checksum(kgamma);
+
+	return sprintf(buf, "%d %d %d %d %d %d %d %d %d %d %d %d %d",
+		kgamma[0], kgamma[1], kgamma[2], kgamma[3],
+		kgamma[4], kgamma[5], kgamma[6], kgamma[7],
+		kgamma[8], kgamma[9], kgamma[10],kgamma[11],
+		kgamma[12]);
+}
+
+static ssize_t kgamma_r_store(struct device *dev, struct device_attribute *attr,
+						const char *buf, size_t count)
+{
+	return do_kgamma_store(dev,attr,buf,count,0);
+}
+
+static ssize_t kgamma_r_show(struct device *dev, struct device_attribute *attr,
+								char *buf)
+{
+	return do_kgamma_show(dev,attr,buf,0);
+}
+
+static ssize_t kgamma_g_store(struct device *dev, struct device_attribute *attr,
+						const char *buf, size_t count)
+{
+	return do_kgamma_store(dev,attr,buf,count,1);
+}
+
+static ssize_t kgamma_g_show(struct device *dev, struct device_attribute *attr,
+								char *buf)
+{
+	return do_kgamma_show(dev,attr,buf,1);
+}
+
+static ssize_t kgamma_b_store(struct device *dev, struct device_attribute *attr,
+						const char *buf, size_t count)
+{
+	return do_kgamma_store(dev,attr,buf,count,2);
+}
+
+static ssize_t kgamma_b_show(struct device *dev, struct device_attribute *attr,
+								char *buf)
+{
+	return do_kgamma_show(dev,attr,buf,2);
+}
+
+static ssize_t kgamma_apply_store(struct device *dev, struct device_attribute *attr,
+						const char *buf, size_t count)
+{
+	int ret = 0;
+
+	/*
+	 * Only attempt to apply if the LCD is active.
+	 * If it isn't, the device will panic-reboot
+	 */
+	if(lcd_isactive) {
+		MIPI_OUTP(MIPI_DSI_BASE + 0x38, 0x10000000);
+		ret = mipi_dsi_cmds_tx(&hitachi_tx_buf,
+				local_power_on_set_2,
+				mipi_hitachi_pdata->power_on_set_size_2);
+		MIPI_OUTP(MIPI_DSI_BASE + 0x38, 0x14000000);
+		if (ret < 0) {
+			pr_err("%s: failed to transmit power_on_set_1 cmds\n", __func__);
+			return ret;
+		}
+	}
+	else {
+		pr_err("%s: Tried to apply gamma settings when LCD was off\n",__func__);
+		//Is ENODEV correct here?  Perhaps it should be something else?
+		return -ENODEV;
+	}
+	return count;
+}
+
+static ssize_t kgamma_apply_show(struct device *dev, struct device_attribute *attr,
+								char *buf)
+{
+	return 0;
+}
+
+static DEVICE_ATTR(kgamma_r, 0644, kgamma_r_show, kgamma_r_store);
+static DEVICE_ATTR(kgamma_g, 0644, kgamma_g_show, kgamma_g_store);
+static DEVICE_ATTR(kgamma_b, 0644, kgamma_b_show, kgamma_b_store);
+static DEVICE_ATTR(kgamma_apply, 0644, kgamma_apply_show, kgamma_apply_store);
+
+/******************* End sysfs interface *******************/
+
 static int mipi_hitachi_lcd_probe(struct platform_device *pdev)
 {
+	int rc;
+
 	if (pdev->id == 0) {
 		mipi_hitachi_pdata = pdev->dev.platform_data;
 		return 0;
 	}
+
+	// Make a copy of platform data
+	memcpy((void*)local_power_on_set_2, (void*)mipi_hitachi_pdata->power_on_set_2,
+		sizeof(local_power_on_set_2));
 
 	pr_info("%s start\n", __func__);
 
 	msm_fb_add_device(pdev);
 
 	register_syscore_ops(&panel_syscore_ops);
+
+	rc = device_create_file(&pdev->dev, &dev_attr_kgamma_r);
+	if(rc !=0)
+		return -1;
+
+	rc = device_create_file(&pdev->dev, &dev_attr_kgamma_g);
+	if(rc !=0)
+		return -1;
+
+	rc = device_create_file(&pdev->dev, &dev_attr_kgamma_b);
+	if(rc !=0)
+		return -1;
+
+	rc = device_create_file(&pdev->dev, &dev_attr_kgamma_apply);
+	if(rc !=0)
+		return -1;
 
 	return 0;
 }

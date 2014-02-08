@@ -737,6 +737,13 @@ static char display_on[2] =  {0x29,0x00};
 static char display_off[2] = {0x28,0x00};
 static char enter_sleep[2] = {0x10,0x00};
 
+static char gamma_jdi_24_a[25] = {0xC7, 0x00, 0x0B, 0x12, 0x1C, 0x2A, 0x45, 0x3B, 0x50, 0x5E, 0x6B, 0x6F, 0x7F,
+					0x00, 0x0B, 0x12, 0x1C, 0x2A, 0x45, 0x3B, 0x50, 0x5E, 0x6B, 0x6F, 0x7F};
+static char gamma_jdi_24_b[25] = {0xC8, 0x00, 0x0B, 0x12, 0x1C, 0x2A, 0x45, 0x3B, 0x50, 0x5E, 0x6B, 0x6F, 0x7F,
+					0x00, 0x0B, 0x12, 0x1C, 0x2A, 0x45, 0x3B, 0x50, 0x5E, 0x6B, 0x6F, 0x7F};
+static char gamma_jdi_24_c[25] = {0xC9, 0x00, 0x0B, 0x12, 0x1C, 0x2A, 0x45, 0x3B, 0x50, 0x5E, 0x6B, 0x6F, 0x7F,
+					0x00, 0x0B, 0x12, 0x1C, 0x2A, 0x45, 0x3B, 0x50, 0x5E, 0x6B, 0x6F, 0x7F };
+
 static struct dsi_cmd_desc hitachi_power_on_set_1[] = {
 	{DTYPE_DCS_WRITE, 1, 0, 0, 120, sizeof(sleep_out_for_cabc), sleep_out_for_cabc},
 	{DTYPE_GEN_WRITE2, 1, 0, 0, 0, sizeof(mcap_start), mcap_start},
@@ -750,6 +757,14 @@ static struct dsi_cmd_desc hitachi_power_on_set_1[] = {
 	{DTYPE_DCS_WRITE1, 1, 0, 0, 20, sizeof(config_MADCTL), config_MADCTL},
 	{DTYPE_DCS_WRITE1, 1, 0, 0, 0, sizeof(rgb_888), rgb_888},
 	{DTYPE_DCS_WRITE, 1, 0, 0, 20, sizeof(display_on), display_on},
+};
+
+static struct dsi_cmd_desc hitachi_power_on_set_2[] = {
+	{DTYPE_GEN_WRITE2, 1, 0, 0, 0, sizeof(mcap_start), mcap_start},
+	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(gamma_jdi_24_a),  gamma_jdi_24_a},
+	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(gamma_jdi_24_b),  gamma_jdi_24_b},
+	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(gamma_jdi_24_c),  gamma_jdi_24_c},
+	{DTYPE_GEN_WRITE2, 1, 0, 0, 0, sizeof(mcap_end), mcap_end },
 };
 
 static struct dsi_cmd_desc hitachi_power_off_set_1[] = {
@@ -767,6 +782,8 @@ static struct msm_panel_common_pdata mipi_hitachi_pdata = {
 	.power_off_set_1 = hitachi_power_off_set_1,
 	.power_off_set_size_1 = ARRAY_SIZE(hitachi_power_off_set_1),
 
+	.power_on_set_2 = hitachi_power_on_set_2,
+	.power_on_set_size_2 = ARRAY_SIZE(hitachi_power_on_set_2),
 };
 
 static struct platform_device mipi_dsi_hitachi_panel_device = {
