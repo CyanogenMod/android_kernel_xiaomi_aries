@@ -428,7 +428,7 @@ static ssize_t cabc_store(struct device *dev, struct device_attribute *attr,
 static ssize_t cabc_show(struct device *dev, struct device_attribute *attr,
 								char *buf)
 {
-	return sprintf(buf, "%d", lcd_ce_enabled);
+	return sprintf(buf, "%d", lcd_cabc_enabled);
 }
 
 static DEVICE_ATTR(kgamma_r, 0644, kgamma_r_show, kgamma_r_store);
