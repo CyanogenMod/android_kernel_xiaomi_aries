@@ -420,6 +420,13 @@ struct msm_panel_common_pdata {
 	void *power_off_set_2;
 	ssize_t power_off_set_size_1;
 	ssize_t power_off_set_size_2;
+	void *power_on_set_gamma;
+	void *power_on_set_cabc;
+	void *power_on_set_ce;
+	ssize_t power_on_set_size_gamma;
+	ssize_t power_on_set_size_cabc;
+	ssize_t power_on_set_size_ce;
+
 	u32 ov0_wb_size;  /* overlay0 writeback size */
 	u32 ov1_wb_size;  /* overlay1 writeback size */
 	u32 mem_hid;
