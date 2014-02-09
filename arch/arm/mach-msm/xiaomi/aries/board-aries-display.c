@@ -714,57 +714,86 @@ static int mipi_hitachi_backlight_level(int level, int max, int min)
 }
 
 static char sleep_out_for_cabc[2] = {0x11,0x00};
-static char mcap_start[2] = {0xb0, 0x04};
-static char mcap_data[2] = {0xCA, 0x00};
-static char mcap_end[2] = {0xb0, 0x03};
+static char mcap_start[2] = {0xB0, 0x04};
+static char write_ce_off[2] = {0xCA, 0x00};
+static char mcap_end[2] = {0xB0, 0x03};
 
 #ifdef CONFIG_HITACHI_CMD_720P_CABC
-static char cabc_set0[3] = {0x51, 0xE, 0xFF};
-static char cabc_set1[2] = {0x55, 0x01};
-static char cabc_set2[2] = {0x53, 0x2C};
+static char write_display_brightness[3] = {0x51, 0xE, 0xFF};
+static char write_cabc[2] = {0x55, 0x01};
+static char write_control_display[2] = {0x53, 0x2C};
 #else
-static char cabc_set0[3] = {0x51, 0xE, 0xFF};
-static char cabc_set1[2] = {0x55, 0x00};
-static char cabc_set2[2] = {0x53, 0x00};
+static char write_display_brightness[3] = {0x51, 0xE, 0xFF};
+static char write_cabc[2] = {0x55, 0x00};
+static char write_control_display[2] = {0x53, 0x00};
 #endif
 
 static char set_width[5] = {0x2A, 0x00, 0x00, 0x02, 0xCF}; /* 720 - 1 */
 static char set_height[5] = {0x2B, 0x00, 0x00, 0x04, 0xFF}; /* 1280 - 1 */
-static char config_MADCTL[2] = {0x36, 0x00};
+static char set_address_mode[2] = {0x36, 0x00};
 static char rgb_888[2] = {0x3a, 0x77};
 
 static char display_on[2] =  {0x29,0x00};
 static char display_off[2] = {0x28,0x00};
 static char enter_sleep[2] = {0x10,0x00};
 
-static char gamma_jdi_24_a[25] = {0xC7, 0x00, 0x0B, 0x12, 0x1C, 0x2A, 0x45, 0x3B, 0x50, 0x5E, 0x6B, 0x6F, 0x7F,
+static char gamma_jdi_24_r[25] = {0xC7, 0x00, 0x0B, 0x12, 0x1C, 0x2A, 0x45, 0x3B, 0x50, 0x5E, 0x6B, 0x6F, 0x7F,
 					0x00, 0x0B, 0x12, 0x1C, 0x2A, 0x45, 0x3B, 0x50, 0x5E, 0x6B, 0x6F, 0x7F};
-static char gamma_jdi_24_b[25] = {0xC8, 0x00, 0x0B, 0x12, 0x1C, 0x2A, 0x45, 0x3B, 0x50, 0x5E, 0x6B, 0x6F, 0x7F,
+static char gamma_jdi_24_g[25] = {0xC8, 0x00, 0x0B, 0x12, 0x1C, 0x2A, 0x45, 0x3B, 0x50, 0x5E, 0x6B, 0x6F, 0x7F,
 					0x00, 0x0B, 0x12, 0x1C, 0x2A, 0x45, 0x3B, 0x50, 0x5E, 0x6B, 0x6F, 0x7F};
-static char gamma_jdi_24_c[25] = {0xC9, 0x00, 0x0B, 0x12, 0x1C, 0x2A, 0x45, 0x3B, 0x50, 0x5E, 0x6B, 0x6F, 0x7F,
+static char gamma_jdi_24_b[25] = {0xC9, 0x00, 0x0B, 0x12, 0x1C, 0x2A, 0x45, 0x3B, 0x50, 0x5E, 0x6B, 0x6F, 0x7F,
 					0x00, 0x0B, 0x12, 0x1C, 0x2A, 0x45, 0x3B, 0x50, 0x5E, 0x6B, 0x6F, 0x7F };
+
+static char write_ce_on[33] = {
+	0xCA, 0x01, 0x80, 0x88, 0x8C, 0xBC, 0x8C, 0x8C,
+	0x8C, 0x18, 0x3F, 0x14, 0xFF, 0x0A, 0x4A, 0x37,
+	0xA0, 0x55, 0xF8, 0x0C, 0x0C, 0x20, 0x10, 0x3F,
+	0x3F, 0x00, 0x00, 0x10, 0x10, 0x3F, 0x3F, 0x3F,
+	0x3F};
+
+static char cabc_test[26] = {
+	0xB8, 0x18, 0x80, 0x18, 0x18, 0xCF, 0x1F, 0x00,
+	0x0C, 0x0E, 0x6C, 0x0E,	0x6C, 0x0E, 0x0C, 0x0E,
+	0xDA, 0x6D, 0xFF, 0xFF,	0x10, 0x8C, 0xD2, 0xFF,
+	0xFF, 0xFF};
+static char cabc_movie_still[8] = {0xB9, 0x00, 0x3F, 0x18, 0x18, 0x9F, 0x1F, 0x80};
+static char cabc_user_inf[8] = {0xBA, 0x00, 0x3F, 0x18, 0x18, 0x9F, 0x1F, 0xD7};
 
 static struct dsi_cmd_desc hitachi_power_on_set_1[] = {
 	{DTYPE_DCS_WRITE, 1, 0, 0, 120, sizeof(sleep_out_for_cabc), sleep_out_for_cabc},
 	{DTYPE_GEN_WRITE2, 1, 0, 0, 0, sizeof(mcap_start), mcap_start},
-	{DTYPE_GEN_WRITE2, 1, 0, 0, 0, sizeof(mcap_data), mcap_data},
+	{DTYPE_GEN_WRITE2, 1, 0, 0, 0, sizeof(write_ce_off), write_ce_off},
 	{DTYPE_GEN_WRITE2, 1, 0, 0, 0, sizeof(mcap_end), mcap_end },
-	{DTYPE_DCS_LWRITE, 1, 0, 0, 0, sizeof(cabc_set0), cabc_set0},
-	{DTYPE_DCS_WRITE1, 1, 0, 0, 0, sizeof(cabc_set1), cabc_set1},
-	{DTYPE_DCS_WRITE1, 1, 0, 0, 0, sizeof(cabc_set2), cabc_set2},
+	{DTYPE_DCS_LWRITE, 1, 0, 0, 0, sizeof(write_display_brightness), write_display_brightness},
+	{DTYPE_DCS_WRITE1, 1, 0, 0, 0, sizeof(write_control_display), write_control_display},
+	{DTYPE_DCS_WRITE1, 1, 0, 0, 0, sizeof(write_cabc), write_cabc},
 	{DTYPE_DCS_LWRITE, 1, 0, 0, 0, sizeof(set_width), set_width},
 	{DTYPE_DCS_LWRITE, 1, 0, 0, 20, sizeof(set_height), set_height},
-	{DTYPE_DCS_WRITE1, 1, 0, 0, 20, sizeof(config_MADCTL), config_MADCTL},
+	{DTYPE_DCS_WRITE1, 1, 0, 0, 20, sizeof(set_address_mode), set_address_mode},
 	{DTYPE_DCS_WRITE1, 1, 0, 0, 0, sizeof(rgb_888), rgb_888},
 	{DTYPE_DCS_WRITE, 1, 0, 0, 20, sizeof(display_on), display_on},
 };
 
-static struct dsi_cmd_desc hitachi_power_on_set_2[] = {
+static struct dsi_cmd_desc hitachi_power_on_set_gamma[] = {
 	{DTYPE_GEN_WRITE2, 1, 0, 0, 0, sizeof(mcap_start), mcap_start},
-	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(gamma_jdi_24_a),  gamma_jdi_24_a},
+	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(gamma_jdi_24_r),  gamma_jdi_24_r},
+	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(gamma_jdi_24_g),  gamma_jdi_24_g},
 	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(gamma_jdi_24_b),  gamma_jdi_24_b},
-	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(gamma_jdi_24_c),  gamma_jdi_24_c},
 	{DTYPE_GEN_WRITE2, 1, 0, 0, 0, sizeof(mcap_end), mcap_end },
+};
+
+static struct dsi_cmd_desc hitachi_power_on_set_ce[] = {
+	{DTYPE_GEN_WRITE2, 1, 0, 0, 0, sizeof(mcap_start), mcap_start},
+	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(write_ce_on), write_ce_on},
+	{DTYPE_GEN_WRITE2, 1, 0, 0, 0, sizeof(mcap_end), mcap_end},
+};
+
+static struct dsi_cmd_desc hitachi_power_on_set_cabc[] = {
+	{DTYPE_GEN_WRITE2, 1, 0, 0, 0, sizeof(mcap_start), mcap_start},
+	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(cabc_test), cabc_test},
+	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(cabc_movie_still), cabc_movie_still},
+	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(cabc_user_inf), cabc_user_inf},
+	{DTYPE_GEN_WRITE2, 1, 0, 0, 0, sizeof(mcap_end), mcap_end},
 };
 
 static struct dsi_cmd_desc hitachi_power_off_set_1[] = {
@@ -782,8 +811,14 @@ static struct msm_panel_common_pdata mipi_hitachi_pdata = {
 	.power_off_set_1 = hitachi_power_off_set_1,
 	.power_off_set_size_1 = ARRAY_SIZE(hitachi_power_off_set_1),
 
-	.power_on_set_2 = hitachi_power_on_set_2,
-	.power_on_set_size_2 = ARRAY_SIZE(hitachi_power_on_set_2),
+	.power_on_set_gamma = hitachi_power_on_set_gamma,
+	.power_on_set_size_gamma = ARRAY_SIZE(hitachi_power_on_set_gamma),
+
+	.power_on_set_ce = hitachi_power_on_set_ce,
+	.power_on_set_size_ce = ARRAY_SIZE(hitachi_power_on_set_ce),
+
+	.power_on_set_cabc = hitachi_power_on_set_cabc,
+	.power_on_set_size_cabc = ARRAY_SIZE(hitachi_power_on_set_cabc),
 };
 
 static struct platform_device mipi_dsi_hitachi_panel_device = {
