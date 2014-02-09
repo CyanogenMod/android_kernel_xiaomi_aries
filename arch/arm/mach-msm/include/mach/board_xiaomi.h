@@ -29,6 +29,20 @@
 
 void __init xiaomi_reserve(void);
 
+#ifdef CONFIG_LCD_KCAL
+struct kcal_data {
+	int red;
+	int green;
+	int blue;
+};
+
+struct kcal_platform_data {
+	int (*set_values) (int r, int g, int b);
+	int (*get_values) (int *r, int *g, int *b);
+	int (*refresh_display) (void);
+};
+#endif
+
 #ifdef CONFIG_ANDROID_PERSISTENT_RAM
 void __init xiaomi_add_persistent_ram(void);
 #else

@@ -8,6 +8,20 @@ endmenu
 
 menu "XIAOMI Specific Patches"
 
+config UPDATE_LCDC_LUT
+	bool "Set initial Qualcomm LCDC lut"
+	default n
+	depends on MACH_XIAOMI
+	help
+	  Set initial Qualcomm LCDC Look Up Table.
+
+config LCD_KCAL
+	bool "Interface to calibrate LCD color temperature"
+	default n
+	depends on MACH_XIAOMI && UPDATE_LCDC_LUT
+	help
+	  Interface to calibrate LCD color temperature
+
 config XIAOMI_PRIMACONFIG_INTERFACE
 	bool "Support primaconfig interface"
 	default n
