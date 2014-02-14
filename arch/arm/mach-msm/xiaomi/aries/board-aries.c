@@ -2326,6 +2326,7 @@ static void __init apq8064_aries_init(void)
 	apq8064_common_init();
 	xiaomi_add_ramconsole_devices();
 	xiaomi_add_backlight_devices();
+	xiaomi_add_mhl_devices();
 	xiaomi_add_sound_devices();
 #ifdef CONFIG_XIAOMI_PRIMACONFIG_INTERFACE
 	xiaomi_add_primaconfig_devices();

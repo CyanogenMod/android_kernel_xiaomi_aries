@@ -32,33 +32,25 @@
 #include <msm/mipi_dsi.h>
 #include <msm/mdp.h>
 
+#ifdef CONFIG_FB_MSM_HDMI_MHL_9244
+#include <msm/mhl_api.h>
+#endif
+
 #include "devices.h"
 #include "board-aries.h"
 
 #ifdef CONFIG_FB_MSM_TRIPLE_BUFFER
 /* prim = 1366 x 768 x 3(bpp) x 3(pages) */
-#if defined(CONFIG_FB_MSM_MIPI_HITACHI_CMD_720P_PT)
-#define MSM_FB_PRIM_BUF_SIZE roundup(768 * 1280 * 4 * 3, 0x10000)
-#else
 #define MSM_FB_PRIM_BUF_SIZE roundup(1920 * 1088 * 4 * 3, 0x10000)
-#endif
 #else
 /* prim = 1366 x 768 x 3(bpp) x 2(pages) */
-#if defined(CONFIG_FB_MSM_MIPI_HITACHI_CMD_720P_PT)
-#define MSM_FB_PRIM_BUF_SIZE roundup(768 * 1280 * 4 * 2, 0x10000)
-#else
 #define MSM_FB_PRIM_BUF_SIZE roundup(1920 * 1088 * 4 * 2, 0x10000)
 #endif
-#endif /*CONFIG_FB_MSM_TRIPLE_BUFFER */
 
 #define MSM_FB_SIZE roundup(MSM_FB_PRIM_BUF_SIZE, 4096)
 
 #ifdef CONFIG_FB_MSM_OVERLAY0_WRITEBACK
-	#if defined(CONFIG_FB_MSM_MIPI_HITACHI_CMD_720P_PT)
-	#define MSM_FB_OVERLAY0_WRITEBACK_SIZE roundup((768 * 1280 * 3 * 2), 4096)
-	#else
-	#define MSM_FB_OVERLAY0_WRITEBACK_SIZE (0)
-	#endif
+#define MSM_FB_OVERLAY0_WRITEBACK_SIZE roundup((1376 * 768 * 3 * 2), 4096)
 #else
 #define MSM_FB_OVERLAY0_WRITEBACK_SIZE (0)
 #endif  /* CONFIG_FB_MSM_OVERLAY0_WRITEBACK */
@@ -256,9 +248,9 @@ static struct msm_bus_scale_pdata mdp_bus_scale_pdata = {
 static struct msm_panel_common_pdata mdp_pdata = {
 	.gpio = MDP_VSYNC_GPIO,
 	.mdp_max_clk = 266667000,
-	.mdp_max_bw = 3000000000u,
+	.mdp_max_bw = 4290000000u,
 	.mdp_bw_ab_factor = 115,
-	.mdp_bw_ib_factor = 125,
+	.mdp_bw_ib_factor = 200,
 	.mdp_bus_scale_table = &mdp_bus_scale_pdata,
 	.mdp_rev = MDP_REV_44,
 #ifdef CONFIG_MSM_MULTIMEDIA_USE_ION
@@ -351,6 +343,9 @@ static struct msm_hdmi_platform_data hdmi_msm_data = {
 	.cec_power = hdmi_cec_power,
 	.panel_power = hdmi_panel_power,
 	.gpio_config = hdmi_gpio_config,
+#if defined(CONFIG_FB_MSM_HDMI_MHL)
+	.is_mhl_enabled = true,
+#endif
 };
 
 static struct platform_device hdmi_msm_device = {
@@ -1029,4 +1024,132 @@ void __init apq8064_set_display_params(char *prim_panel, char *ext_panel,
 	}
 
 	msm_fb_pdata.ext_resolution = resolution;
+}
+
+#ifdef CONFIG_FB_MSM_HDMI_MHL_9244
+#define MITWO_GPIO_MHL_RESET		PM8921_GPIO_PM_TO_SYS(22)
+#define MITWO_GPIO_MHL_INT		23
+#define MITWO_GPIO_MHL_WAKEUP		PM8921_GPIO_PM_TO_SYS(16)
+
+static int sii9244_power_setup(int on)
+{
+	int rc;
+	static bool mhl_power_on;
+	int mhl_1v8_gpio = PM8921_GPIO_PM_TO_SYS(14);
+	int mhl_3v3_gpio = PM8921_GPIO_PM_TO_SYS(19);
+	int hdmi_1v8_3v3_gpio = PM8921_GPIO_PM_TO_SYS(21);
+
+	if (!mhl_power_on) {
+		rc = gpio_request(mhl_1v8_gpio, "mhl_1v8_gpio");
+		if (rc) {
+			pr_err("request pm8921 gpio 14 failed, rc=%d\n", rc);
+			return -ENODEV;
+		}
+		rc = gpio_request(mhl_3v3_gpio, "mhl_3v3_gpio");
+		if (rc) {
+			pr_err("request pm8921 gpio 19 failed, rc=%d\n", rc);
+			return -ENODEV;
+		}
+		rc = gpio_request(hdmi_1v8_3v3_gpio, "hdmi_1v8_3v3_gpio");
+		if (rc) {
+			pr_err("request pm8921 gpio 21 failed, rc=%d\n", rc);
+			return -ENODEV;
+		}
+
+		mhl_power_on = true;
+	}
+
+	if (on) {
+		gpio_direction_output(mhl_1v8_gpio, 1);
+		gpio_direction_output(mhl_3v3_gpio, 1);
+		gpio_direction_output(hdmi_1v8_3v3_gpio, 1);
+	} else {
+		gpio_direction_output(mhl_1v8_gpio, 0);
+		gpio_direction_output(mhl_3v3_gpio, 0);
+		gpio_direction_output(hdmi_1v8_3v3_gpio, 0);
+	}
+
+	return 0;
+}
+
+static void sii9244_reset(int on)
+{
+	int rc;
+	static bool mhl_first_reset;
+	int mhl_gpio_reset = MITWO_GPIO_MHL_RESET;
+
+	if (!mhl_first_reset) {
+		rc = gpio_request(mhl_gpio_reset, "mhl_rst");
+		if (rc) {
+			pr_err("request pm8921 gpio 22 failed, rc=%d\n", rc);
+			return;
+		}
+		mhl_first_reset = true;
+	}
+
+	if (on) {
+		gpio_direction_output(mhl_gpio_reset, 0);
+		msleep(10);
+		gpio_direction_output(mhl_gpio_reset, 1);
+	} else {
+		gpio_direction_output(mhl_gpio_reset, 0);
+	}
+}
+
+#if defined(CONFIG_FB_MSM_HDMI_MHL_RCP)
+static int sii9244_key_codes[] = {
+	KEY_1, KEY_2, KEY_3, KEY_4, KEY_5,
+	KEY_6, KEY_7, KEY_8, KEY_9, KEY_0,
+	KEY_SELECT, KEY_UP, KEY_DOWN, KEY_LEFT, KEY_RIGHT,
+	KEY_MENU, KEY_EXIT, KEY_DOT, KEY_ENTER,
+	KEY_CLEAR, KEY_SOUND,
+	KEY_PLAY, KEY_PAUSE, KEY_STOP, KEY_FASTFORWARD, KEY_REWIND,
+	KEY_EJECTCD, KEY_FORWARD, KEY_BACK,
+	KEY_PLAYCD, KEY_PAUSECD, KEY_STOP,
+};
+#endif
+
+static struct mhl_platform_data mhl_sii9244_pdata = {
+	.mhl_gpio_reset = 	MITWO_GPIO_MHL_RESET,
+	.mhl_gpio_wakeup = 	MITWO_GPIO_MHL_WAKEUP,
+	.power_setup = 		sii9244_power_setup,
+	.reset =		sii9244_reset,
+#if defined(CONFIG_FB_MSM_HDMI_MHL_RCP)
+	.mhl_key_codes =	sii9244_key_codes,
+	.mhl_key_num = 		ARRAY_SIZE(sii9244_key_codes),
+#endif
+};
+
+static struct i2c_board_info mhl_sii9244_board_info[] = {
+	{
+		I2C_BOARD_INFO("mhl_Sii9244_page0", 0x39),		//0x72
+		.platform_data = &mhl_sii9244_pdata,
+		.irq = MSM_GPIO_TO_INT(MITWO_GPIO_MHL_INT),
+	},
+	{
+		I2C_BOARD_INFO("mhl_Sii9244_page1", 0x3D),		//0x7A
+	},
+	{
+		I2C_BOARD_INFO("mhl_Sii9244_page2", 0x49),		//0x92
+	},
+	{
+		I2C_BOARD_INFO("mhl_Sii9244_cbus", 0x64),		//0xC8
+	},
+};
+
+static struct i2c_registry i2c_mhl_devices __initdata = {
+	I2C_FFA,
+	APQ_8064_GSBI1_QUP_I2C_BUS_ID,
+	mhl_sii9244_board_info,
+	ARRAY_SIZE(mhl_sii9244_board_info),
+};
+#endif
+
+void __init xiaomi_add_mhl_devices(void)
+{
+#ifdef CONFIG_FB_MSM_HDMI_MHL_9244
+	i2c_register_board_info(i2c_mhl_devices.bus,
+		i2c_mhl_devices.info,
+		i2c_mhl_devices.len);
+#endif
 }

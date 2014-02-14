@@ -1431,6 +1431,41 @@ static void msm_hsusb_vbus_power(struct msm_otg *motg, bool on)
 	}
 }
 
+static bool vbus_is_on = 0;
+int mhl_vbus_status(void)
+{
+	pr_info("%s %d\n", __func__, vbus_is_on);
+	return vbus_is_on;
+}
+
+#if defined(CONFIG_FB_MSM_HDMI_MHL_9244)
+void mhl_vbus_power(bool on)
+{
+	int ret;
+
+	if (vbus_is_on == on)
+		return;
+
+	pr_info("%s: on %d\n", __func__, on);
+	if (on) {
+		ret = regulator_enable(vbus_otg);
+		if (ret) {
+			pr_err("unable to enable vbus_otg\n");
+			return;
+		}
+		vbus_is_on = true;
+
+	} else {
+		ret = regulator_disable(vbus_otg);
+		if (ret) {
+			pr_err("unable to disable vbus_otg\n");
+			return;
+		}
+		vbus_is_on = false;
+	}
+}
+#endif
+
 static int msm_otg_set_host(struct usb_otg *otg, struct usb_bus *host)
 {
 	struct msm_otg *motg = container_of(otg->phy, struct msm_otg, phy);

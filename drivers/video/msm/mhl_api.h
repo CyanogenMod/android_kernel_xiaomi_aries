@@ -16,6 +16,23 @@
 
 #ifdef CONFIG_FB_MSM_HDMI_MHL_8334
 bool mhl_is_connected(void);
+#elif defined(CONFIG_FB_MSM_HDMI_MHL_9244)
+bool mhl_is_connected(void);
+
+struct mhl_platform_data {
+	uint32_t mhl_gpio_reset;
+	uint32_t mhl_gpio_wakeup;
+	int (*power_setup)(int on);
+	void (*reset)(int on);
+#if defined(CONFIG_FB_MSM_HDMI_MHL_RCP)
+	int *mhl_key_codes;
+	int mhl_key_num;
+#endif
+};
+
+#if defined(CONFIG_FB_MSM_HDMI_MHL_RCP)
+void rcp_report_event(unsigned int type, unsigned int code, int value);
+#endif
 #else
 static bool mhl_is_connected(void)
 {

@@ -1,5 +1,6 @@
 
 source "drivers/video/msm/vidc/Kconfig"
+source "drivers/video/msm/mhl9244/Kconfig"
 
 config FB_MSM
 	tristate "MSM Framebuffer support"
@@ -609,15 +610,6 @@ config FB_MSM_HDMI_MSM_PANEL_CEC_SUPPORT
 	---help---
 	  Support for HDMI CEC Feature
 	  Choose to enable CEC
-
-config FB_MSM_HDMI_MHL_9244
-	depends on FB_MSM_HDMI_MSM_PANEL
-	bool 'SI_MHL 9244 support'
-	default n
-	---help---
-	  Support the HDMI to MHL conversion.
-	  MHL (Mobile High-Definition Link) technology
-	  uses USB connector to output HDMI content
 
 config FB_MSM_HDMI_MHL_8334
 	depends on FB_MSM_HDMI_MSM_PANEL
