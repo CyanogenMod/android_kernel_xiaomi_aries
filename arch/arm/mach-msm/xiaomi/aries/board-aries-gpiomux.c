@@ -571,29 +571,42 @@ static struct gpiomux_setting aries_53_54_suspend_cfg = {
 	.pull = GPIOMUX_PULL_NONE,
 };
 
-static struct gpiomux_setting aries_62_active_cfg = {
+static struct gpiomux_setting aries_uart_sw_active_cfg = {
 	.func = GPIOMUX_FUNC_GPIO,
 	.drv = GPIOMUX_DRV_8MA,
 	.pull = GPIOMUX_PULL_DOWN,
 };
 
-static struct gpiomux_setting aries_62_suspend_cfg = {
+static struct gpiomux_setting aries_uart_sw_suspend_cfg = {
 	.func = GPIOMUX_FUNC_GPIO,
 	.drv = GPIOMUX_DRV_8MA,
+#ifdef CONFIG_XIAOMI_EARJACK_UART
+	.pull = GPIOMUX_PULL_UP,
+#else
 	.pull = GPIOMUX_PULL_DOWN,
+#endif
 };
 
-static struct gpiomux_setting aries_82_suspend_cfg = {
-	.func = GPIOMUX_FUNC_2,
-	.drv = GPIOMUX_DRV_8MA,
-	.pull = GPIOMUX_PULL_NONE,
-};
-
-static struct gpiomux_setting aries_83_suspend_cfg = {
+#ifdef CONFIG_XIAOMI_EARJACK_UART
+static struct gpiomux_setting gsbi7_func1_cfg = {
 	.func = GPIOMUX_FUNC_1,
 	.drv = GPIOMUX_DRV_8MA,
 	.pull = GPIOMUX_PULL_NONE,
 };
+static struct gpiomux_setting gsbi7_func2_cfg = {
+	.func = GPIOMUX_FUNC_2,
+	.drv = GPIOMUX_DRV_8MA,
+	.pull = GPIOMUX_PULL_NONE,
+};
+#else
+static struct gpiomux_setting earjack_gpio_cfg = {
+	.func = GPIOMUX_FUNC_GPIO,
+	.drv = GPIOMUX_DRV_2MA,
+	.pull = GPIOMUX_PULL_DOWN,
+};
+#endif
+
+
 
 static struct msm_gpiomux_config apq8064_aries_configs[] = {
 	{
@@ -659,20 +672,28 @@ static struct msm_gpiomux_config apq8064_aries_configs[] = {
 	{
 		.gpio = 62,
 		.settings = {
-			[GPIOMUX_ACTIVE] = &aries_62_active_cfg,
-			[GPIOMUX_SUSPENDED] = &aries_62_suspend_cfg,
+			[GPIOMUX_ACTIVE] = &aries_uart_sw_active_cfg,
+			[GPIOMUX_SUSPENDED] = &aries_uart_sw_suspend_cfg,
 		},
 	},
 	{
 		.gpio = 82,
 		.settings = {
-			[GPIOMUX_SUSPENDED] = &aries_82_suspend_cfg,
+#ifdef CONFIG_XIAOMI_EARJACK_UART
+			[GPIOMUX_SUSPENDED] = &gsbi7_func2_cfg,
+#else
+			[GPIOMUX_SUSPENDED] = &earjack_gpio_cfg,
+#endif
 		},
 	},
 	{
 		.gpio = 83,
 		.settings = {
-			[GPIOMUX_SUSPENDED] = &aries_83_suspend_cfg,
+#ifdef CONFIG_XIAOMI_EARJACK_UART
+			[GPIOMUX_SUSPENDED] = &gsbi7_func1_cfg,
+#else
+			[GPIOMUX_SUSPENDED] = &earjack_gpio_cfg,
+#endif
 		},
 	},
 };

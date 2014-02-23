@@ -29,4 +29,11 @@ config XIAOMI_PRIMACONFIG_INTERFACE
 	help
 	  Interface to set mac address for prima wlan driver from userspace
 
+config XIAOMI_EARJACK_UART
+	bool "Earjack UART"
+	default n
+	depends on MACH_XIAOMI
+	help
+	  Enable Earjack UART debugger. This disables headphone support
+
 endmenu
