@@ -505,67 +505,67 @@ static struct msm_gpiomux_config apq8064_bcm2079x_nfc_configs[] __initdata = {
 };
 #endif
 
-static struct gpiomux_setting aries_0_active_cfg = {
+static struct gpiomux_setting fte_active_cfg = {
 	.func = GPIOMUX_FUNC_1,
 	.drv = GPIOMUX_DRV_8MA,
 	.pull = GPIOMUX_PULL_NONE,
 };
 
-static struct gpiomux_setting aries_0_suspend_cfg = {
+static struct gpiomux_setting fte_suspend_cfg = {
 	.func = GPIOMUX_FUNC_1,
 	.drv = GPIOMUX_DRV_2MA,
 	.pull = GPIOMUX_PULL_DOWN,
 };
 
-static struct gpiomux_setting aries_6_active_cfg = {
+static struct gpiomux_setting tp_int_active_cfg = {
 	.func = GPIOMUX_FUNC_GPIO,
 	.drv = GPIOMUX_DRV_8MA,
 	.pull = GPIOMUX_PULL_UP,
 };
 
-static struct gpiomux_setting aries_6_suspend_cfg = {
+static struct gpiomux_setting tp_int_suspend_cfg = {
 	.func = GPIOMUX_FUNC_GPIO,
 	.drv = GPIOMUX_DRV_2MA,
 	.pull = GPIOMUX_PULL_DOWN,
 };
 
-static struct gpiomux_setting aries_23_active_cfg = {
+static struct gpiomux_setting mhl_int_active_cfg = {
 	.func = GPIOMUX_FUNC_GPIO,
 	.drv = GPIOMUX_DRV_2MA,
 	.pull = GPIOMUX_PULL_UP,
 };
 
-static struct gpiomux_setting aries_23_suspend_cfg = {
+static struct gpiomux_setting mhl_int_suspend_cfg = {
 	.func = GPIOMUX_FUNC_GPIO,
 	.drv = GPIOMUX_DRV_2MA,
 	.pull = GPIOMUX_PULL_UP,
 };
 
-static struct gpiomux_setting aries_26_32_suspend_cfg = {
+static struct gpiomux_setting gpio_nc_suspend_cfg = {
 	.func = GPIOMUX_FUNC_GPIO,
 	.drv = GPIOMUX_DRV_2MA,
 	.pull = GPIOMUX_PULL_NONE,
 };
 
-static struct gpiomux_setting aries_51_active_cfg = {
+static struct gpiomux_setting audience_wakeup_active_cfg = {
 	.func = GPIOMUX_FUNC_GPIO,
 	.drv = GPIOMUX_DRV_8MA,
 	.pull = GPIOMUX_PULL_UP,
 };
 
-static struct gpiomux_setting aries_51_52_suspend_cfg = {
+static struct gpiomux_setting gsbi5_func2_cfg = {
 	.func = GPIOMUX_FUNC_2,
 	.drv = GPIOMUX_DRV_8MA,
 	.pull = GPIOMUX_PULL_NONE,
 };
 
-static struct gpiomux_setting aries_53_54_active_cfg = {
+static struct gpiomux_setting gsbi5_active_cfg = {
 	.func = GPIOMUX_FUNC_2,
 	.drv = GPIOMUX_DRV_12MA,
 	.pull = GPIOMUX_PULL_NONE,
 };
 
-static struct gpiomux_setting aries_53_54_suspend_cfg = {
+static struct gpiomux_setting gsbi5_suspend_cfg = {
 	.func = GPIOMUX_FUNC_2,
 	.drv = GPIOMUX_DRV_12MA,
 	.pull = GPIOMUX_PULL_NONE,
@@ -609,66 +609,76 @@ static struct gpiomux_setting earjack_gpio_cfg = {
 
 
 static struct msm_gpiomux_config apq8064_aries_configs[] = {
+	/* LCD FTE */
 	{
 		.gpio = 0,
 		.settings = {
-			[GPIOMUX_ACTIVE] = &aries_0_active_cfg,
-			[GPIOMUX_SUSPENDED] = &aries_0_suspend_cfg,
+			[GPIOMUX_ACTIVE] = &fte_active_cfg,
+			[GPIOMUX_SUSPENDED] = &fte_suspend_cfg,
 		},
 	},
+	/* TS INTERRUPT */
 	{
 		.gpio = 6,
 		.settings = {
-			[GPIOMUX_ACTIVE] = &aries_6_active_cfg,
-			[GPIOMUX_SUSPENDED] = &aries_6_suspend_cfg,
+			[GPIOMUX_ACTIVE] = &tp_int_active_cfg,
+			[GPIOMUX_SUSPENDED] = &tp_int_suspend_cfg,
 		},
 	},
+	/* MHL interrupt */
 	{
 		.gpio = 23,
 		.settings = {
-			[GPIOMUX_ACTIVE] = &aries_23_active_cfg,
-			[GPIOMUX_SUSPENDED] = &aries_23_suspend_cfg,
+			[GPIOMUX_ACTIVE] = &mhl_int_active_cfg,
+			[GPIOMUX_SUSPENDED] = &mhl_int_suspend_cfg,
 		},
 	},
+	/* BQ27520 batt_int, not used now */
 	{
 		.gpio = 26,
 		.settings = {
-			[GPIOMUX_SUSPENDED] = &aries_26_32_suspend_cfg,
+			[GPIOMUX_SUSPENDED] = &gpio_nc_suspend_cfg,
 		},
 	},
+	/* BQ27520 batt_low, not used now */
 	{
 		.gpio = 32,
 		.settings = {
-			[GPIOMUX_SUSPENDED] = &aries_26_32_suspend_cfg,
+			[GPIOMUX_SUSPENDED] = &gpio_nc_suspend_cfg,
 		},
 	},
+	/* GSBI5 UART2 TX */
 	{
 		.gpio = 51,
 		.settings = {
-			[GPIOMUX_ACTIVE] = &aries_51_active_cfg,
-			[GPIOMUX_SUSPENDED] = &aries_51_52_suspend_cfg,
+			[GPIOMUX_ACTIVE] = &audience_wakeup_active_cfg,
+			[GPIOMUX_SUSPENDED] = &gsbi5_func2_cfg,
 		},
 	},
+	/* GSBI5 UART2 RX */
 	{
 		.gpio = 52,
 		.settings = {
-			[GPIOMUX_SUSPENDED] = &aries_51_52_suspend_cfg,
+			[GPIOMUX_SUSPENDED] = &gsbi5_func2_cfg,
 		},
 	},
+	/* GSBI5 I2C QUP SDA */
 	{
 		.gpio = 53,
 		.settings = {
-			[GPIOMUX_ACTIVE] = &aries_53_54_active_cfg,
-			[GPIOMUX_SUSPENDED] = &aries_53_54_suspend_cfg,
+			[GPIOMUX_ACTIVE] = &gsbi5_active_cfg,
+			[GPIOMUX_SUSPENDED] = &gsbi5_suspend_cfg,
 		},
 	},
+	/* GSBI5 I2C QUP SCL */
 	{
 		.gpio = 54,
 		.settings = {
-			[GPIOMUX_ACTIVE] = &aries_53_54_active_cfg,
-			[GPIOMUX_SUSPENDED] = &aries_53_54_suspend_cfg,
+			[GPIOMUX_ACTIVE] = &gsbi5_active_cfg,
+			[GPIOMUX_SUSPENDED] = &gsbi5_suspend_cfg,
 		},
 	},
+	/* Switch between HS and UART: HIGH->UART, LOW->HS */
 	{
 		.gpio = 62,
 		.settings = {
@@ -680,7 +690,7 @@ static struct msm_gpiomux_config apq8064_aries_configs[] = {
 		.gpio = 82,
 		.settings = {
 #ifdef CONFIG_XIAOMI_EARJACK_UART
-			[GPIOMUX_SUSPENDED] = &gsbi7_func2_cfg,
+			[GPIOMUX_SUSPENDED] = &gsbi7_func2_cfg, /* GSBI7 UART2 TX */
 #else
 			[GPIOMUX_SUSPENDED] = &earjack_gpio_cfg,
 #endif
@@ -690,7 +700,7 @@ static struct msm_gpiomux_config apq8064_aries_configs[] = {
 		.gpio = 83,
 		.settings = {
 #ifdef CONFIG_XIAOMI_EARJACK_UART
-			[GPIOMUX_SUSPENDED] = &gsbi7_func1_cfg,
+			[GPIOMUX_SUSPENDED] = &gsbi7_func1_cfg, /* GSBI7 UART2 RX */
 #else
 			[GPIOMUX_SUSPENDED] = &earjack_gpio_cfg,
 #endif
