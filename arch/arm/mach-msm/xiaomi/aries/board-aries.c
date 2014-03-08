@@ -2189,6 +2189,13 @@ static void __init register_i2c_devices(void)
 		apq8064_camera_board_info.board_info,
 		apq8064_camera_board_info.num_i2c_board_info,
 	};
+	/* Enabling flash LED for camera */
+	struct i2c_registry apq8064_xiaomi_camera_i2c_devices = {
+		I2C_FFA,
+		APQ_8064_GSBI1_QUP_I2C_BUS_ID,
+		apq8064_xiaomi_camera_board_info.board_info,
+		apq8064_xiaomi_camera_board_info.num_i2c_board_info,
+	};
 #endif
 
 
@@ -2196,6 +2203,11 @@ static void __init register_i2c_devices(void)
 	i2c_register_board_info(apq8064_camera_i2c_devices.bus,
 		apq8064_camera_i2c_devices.info,
 		apq8064_camera_i2c_devices.len);
+
+	/* Enabling flash LED for camera */
+	i2c_register_board_info(apq8064_xiaomi_camera_i2c_devices.bus,
+		apq8064_xiaomi_camera_i2c_devices.info,
+		apq8064_xiaomi_camera_i2c_devices.len);
 #endif
 }
 

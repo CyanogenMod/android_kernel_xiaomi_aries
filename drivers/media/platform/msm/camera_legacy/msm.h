@@ -48,7 +48,7 @@
 #define MSM_CSID_DRV_NAME "msm_csid"
 #define MSM_CSIC_DRV_NAME "msm_csic"
 #define MSM_ISPIF_DRV_NAME "msm_ispif"
-#define MSM_VFE_DRV_NAME "msm_vfe"
+#define MSM_VFE_DRV_NAME "msm_vfe32"
 #define MSM_VPE_DRV_NAME "msm_vpe"
 #define MSM_GEMINI_DRV_NAME "msm_gemini"
 #define MSM_I2C_MUX_DRV_NAME "msm_cam_i2c_mux"
