@@ -103,12 +103,6 @@ void apq8064_init_gpu(void);
 void apq8064_pm8xxx_gpio_mpp_init(void);
 void __init configure_apq8064_pm8917_power_grid(void);
 
-#define PLATFORM_IS_MPQ8064() \
-	(machine_is_mpq8064_hrd() || \
-	 machine_is_mpq8064_dtv() || \
-	 machine_is_mpq8064_cdp() \
-	)
-
 
 #define GPIO_EXPANDER_IRQ_BASE	(TABLA_INTERRUPT_BASE + \
 					NR_TABLA_IRQS)

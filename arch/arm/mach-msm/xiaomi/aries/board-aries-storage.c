@@ -339,46 +339,8 @@ void __init apq8064_init_mmc(void)
 		apq8064_add_sdcc(2, apq8064_sdc2_pdata);
 
 	if (apq8064_sdc3_pdata) {
-		if (!machine_is_apq8064_cdp()) {
-			apq8064_sdc3_pdata->wpswitch_gpio = 0;
-			apq8064_sdc3_pdata->is_wpswitch_active_low = false;
-		}
-		if (machine_is_mpq8064_cdp() || machine_is_mpq8064_hrd() ||
-			machine_is_mpq8064_dtv()) {
-			int rc;
-			struct pm_gpio sd_card_det_init_cfg = {
-				.direction      = PM_GPIO_DIR_IN,
-				.output_buffer  = PM_GPIO_OUT_BUF_CMOS,
-				.pull           = PM_GPIO_PULL_UP_30,
-				.vin_sel        = PM_GPIO_VIN_S4,
-				.out_strength   = PM_GPIO_STRENGTH_NO,
-				.function       = PM_GPIO_FUNC_NORMAL,
-			};
-
-			apq8064_sdc3_pdata->status_gpio =
-				PM8921_GPIO_PM_TO_SYS(31);
-			apq8064_sdc3_pdata->status_irq =
-				PM8921_GPIO_IRQ(PM8921_IRQ_BASE, 31);
-			rc = pm8xxx_gpio_config(apq8064_sdc3_pdata->status_gpio,
-					&sd_card_det_init_cfg);
-			if (rc) {
-				pr_info("%s: SD_CARD_DET GPIO%d config "
-					"failed(%d)\n", __func__,
-					apq8064_sdc3_pdata->status_gpio, rc);
-				apq8064_sdc3_pdata->status_gpio = 0;
-				apq8064_sdc3_pdata->status_irq = 0;
-			}
-		}
-		if (machine_is_apq8064_cdp()) {
-			int i;
-
-			for (i = 0;
-			     i < apq8064_sdc3_pdata->pin_data->pad_data->\
-				 drv->size;
-			     i++)
-				apq8064_sdc3_pdata->pin_data->pad_data->\
-					drv->on[i].val = GPIO_CFG_10MA;
-		}
+		apq8064_sdc3_pdata->wpswitch_gpio = 0;
+		apq8064_sdc3_pdata->is_wpswitch_active_low = false;
 		apq8064_add_sdcc(3, apq8064_sdc3_pdata);
 	}
 
