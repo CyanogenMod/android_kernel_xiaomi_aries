@@ -2950,8 +2950,10 @@ static int set_battery_data(struct pm8921_bms_chip *chip)
 		goto desay;
 	else if (chip->batt_type == BATT_PALLADIUM)
 		goto palladium;
+#ifdef CONFIG_MACH_APQ8064_MAKO
 	else if (chip->batt_type == BATT_LGE)
 		goto lge;
+#endif
 
 	battery_id = read_battery_id(chip);
 	if (battery_id < 0) {
@@ -2990,6 +2992,8 @@ desay:
 		chip->default_rbatt_mohm = desay_5200_data.default_rbatt_mohm;
 		chip->delta_rbatt_mohm = desay_5200_data.delta_rbatt_mohm;
 		return 0;
+
+#ifdef CONFIG_MACH_APQ8064_MAKO
 lge:
 		chip->fcc = lge_2100_mako_data.fcc;
 		chip->fcc_temp_lut = lge_2100_mako_data.fcc_temp_lut;
@@ -3001,6 +3005,7 @@ lge:
 				= lge_2100_mako_data.default_rbatt_mohm;
 		chip->delta_rbatt_mohm = lge_2100_mako_data.delta_rbatt_mohm;
 		return 0;
+#endif
 }
 
 enum bms_request_operation {
