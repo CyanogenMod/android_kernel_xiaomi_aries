@@ -86,6 +86,8 @@ void apq8064_init_mmc(void);
 void apq8064_init_gpiomux(void);
 void apq8064_init_pmic(void);
 
+extern struct platform_device batt_temp_ctrl;
+
 extern struct msm_camera_board_info apq8064_camera_board_info;
 void apq8064_init_cam(void);
 

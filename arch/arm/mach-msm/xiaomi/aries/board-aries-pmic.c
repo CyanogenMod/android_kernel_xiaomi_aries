@@ -20,6 +20,8 @@
 #include <linux/leds.h>
 #include <linux/leds-pm8xxx.h>
 #include <linux/mfd/pm8xxx/pm8xxx-adc.h>
+#include <linux/mfd/pm8xxx/pm8921-bms.h>
+#include <linux/platform_data/battery_temp_ctrl.h>
 #include <asm/mach-types.h>
 #include <asm/mach/mmc.h>
 #include <mach/msm_bus_board.h>
@@ -29,6 +31,7 @@
 #include <mach/socinfo.h>
 #include "devices.h"
 #include "board-aries.h"
+#include "board-aries-pmic.h"
 
 struct pm8xxx_gpio_init {
 	unsigned			gpio;
@@ -203,15 +206,15 @@ static struct pm8xxx_misc_platform_data apq8064_pm8921_misc_pdata = {
 
 static struct led_info pm8921_led_info[] = {
 	[0] = {
-		.name			= "led:red",
+		.name			= "red",
 		.default_trigger	= "battery-charging",
 	},
 	[1] = {
-		.name			= "led:green",
+		.name			= "green",
 		.default_trigger	= "battery-full",
 	},
 	[2] = {
-		.name			= "led:blue",
+		.name			= "blue",
 		.default_trigger	= "dc-online",
 	},
 };
@@ -357,28 +360,55 @@ static int apq8064_pm8921_therm_mitigation[] = {
 	325,
 };
 
-#define MAX_VOLTAGE_MV          4200
+static int batt_temp_ctrl_level[] = {
+	600,
+	570,
+	550,
+	450,
+	440,
+	-50,
+	-80,
+	-100,
+};
+
+/*
+ * Battery characteristic
+ * Typ.2100mAh capacity, Li-Ion Polymer 3.8V
+ * Battery/VDD voltage programmable range, 20mV steps.
+ */
+#define MAX_VOLTAGE_MV		4200
 #define CHG_TERM_MA		100
-static struct pm8921_charger_platform_data
-apq8064_pm8921_chg_pdata __devinitdata = {
-	.safety_time		= 180,
-	.update_time		= 60000,
-	.max_voltage		= MAX_VOLTAGE_MV,
-	.min_voltage		= 3200,
-	.uvd_thresh_voltage	= 4050,
-	.alarm_voltage		= 3400,
-	.resume_voltage_delta	= 100,
-	.term_current		= CHG_TERM_MA,
-	.cool_temp		= 10,
-	.warm_temp		= 40,
-	.temp_check_period	= 1,
-	.max_bat_chg_current	= 1100,
-	.cool_bat_chg_current	= 350,
-	.warm_bat_chg_current	= 350,
-	.cool_bat_voltage	= 4100,
-	.warm_bat_voltage	= 4100,
-	.thermal_mitigation	= apq8064_pm8921_therm_mitigation,
-	.thermal_levels		= ARRAY_SIZE(apq8064_pm8921_therm_mitigation),
+#define MAX_BATT_CHG_I_MA	1000
+#define WARM_BATT_CHG_I_MA	350
+#define VBATDET_DELTA_MV	20
+#define EOC_CHECK_SOC	1
+
+static struct pm8921_charger_platform_data apq8064_pm8921_chg_pdata __devinitdata = {
+	.safety_time  = 480,
+	.update_time  = 60000,
+	.max_voltage  = MAX_VOLTAGE_MV,
+	.min_voltage  = 3200,
+	.alarm_voltage  = 3500,
+	.resume_voltage_delta  = VBATDET_DELTA_MV,
+	.term_current  = CHG_TERM_MA,
+
+	.cool_temp  = 0,
+	.warm_temp  = 45,
+	.max_bat_chg_current  = 1000,
+	.cool_bat_chg_current  = 350,
+	.warm_bat_chg_current  = WARM_BATT_CHG_I_MA,
+	.cold_thr  = 1,
+	.hot_thr  = 0,
+	.ext_batt_temp_monitor  = 1,
+	.temp_check_period  = 1,
+	.max_bat_chg_current  = MAX_BATT_CHG_I_MA,
+	.cool_bat_voltage  = 4100,
+	.warm_bat_voltage  = 4100,
+	.thermal_mitigation  = apq8064_pm8921_therm_mitigation,
+	.thermal_levels  = ARRAY_SIZE(apq8064_pm8921_therm_mitigation),
+	.led_src_config  = LED_SRC_5V,
+	.rconn_mohm	 = 50,
+	.eoc_check_soc  = EOC_CHECK_SOC,
 };
 
 static struct pm8xxx_ccadc_platform_data
@@ -389,14 +419,17 @@ apq8064_pm8xxx_ccadc_pdata = {
 
 static struct pm8921_bms_platform_data
 apq8064_pm8921_bms_pdata __devinitdata = {
-	.battery_type			= BATT_UNKNOWN,
-	.r_sense			= 10,
-	.v_cutoff			= 3400,
-	.max_voltage_uv			= MAX_VOLTAGE_MV * 1000,
-	.rconn_mohm			= 18,
-	.shutdown_soc_valid_limit	= 20,
-	.adjust_soc_low_threshold	= 25,
-	.chg_term_ua			= CHG_TERM_MA * 1000,
+	.battery_type  = BATT_UNKNOWN,
+	.r_sense  = 10,
+	.v_cutoff  = 3400,
+	.max_voltage_uv  = MAX_VOLTAGE_MV * 1000,
+	.rconn_mohm  = 50,
+	.shutdown_soc_valid_limit  = 10,
+	.adjust_soc_low_threshold  = 25,
+	.chg_term_ua  = CHG_TERM_MA * 1000,
+	.eoc_check_soc  = EOC_CHECK_SOC,
+	.bms_support_wlc  = 0,
+	.first_fixed_iavg_ma  = 500,
 };
 
 static unsigned int keymap[] = {
@@ -475,9 +508,121 @@ static struct msm_ssbi_platform_data apq8064_ssbi_pm8821_pdata __devinitdata = {
 	},
 };
 
+static int batt_temp_charger_enable(void)
+{
+	int ret = 0;
+
+	pr_info("%s\n", __func__);
+
+	ret = pm8921_charger_enable(1);
+	if (ret)
+		pr_err("%s: failed to enable charging\n", __func__);
+
+	return ret;
+}
+
+static int batt_temp_charger_disable(void)
+{
+	int ret = 0;
+
+	pr_info("%s\n", __func__);
+
+	ret = pm8921_charger_enable(0);
+	if (ret)
+		pr_err("%s: failed to disable charging\n", __func__);
+
+	return ret;
+}
+
+static int batt_temp_ext_power_plugged(void)
+{
+	if (pm8921_is_usb_chg_plugged_in() ||
+			pm8921_is_dc_chg_plugged_in())
+		return 1;
+	else
+		return 0;
+}
+
+static int batt_temp_set_current_limit(int value)
+{
+	int ret = 0;
+
+	pr_info("%s: value = %d\n", __func__, value);
+
+	ret = pm8921_set_max_battery_charge_current(value);
+	if (ret)
+		pr_err("%s: failed to set i limit\n", __func__);
+	return ret;
+}
+
+static int batt_temp_get_current_limit(void)
+{
+	static struct power_supply *psy;
+	union power_supply_propval ret = {0,};
+	int rc = 0;
+
+	if (psy == NULL) {
+		psy = power_supply_get_by_name("usb");
+		if (!psy) {
+			pr_err("%s: failed to get usb power supply\n", __func__);
+			return 0;
+		}
+	}
+
+	rc = psy->get_property(psy, POWER_SUPPLY_PROP_CURRENT_MAX, &ret);
+	if (rc) {
+		pr_err("%s: failed to get usb property\n", __func__);
+		return 0;
+	}
+	pr_info("%s: value = %d\n", __func__, ret.intval);
+	return ret.intval;
+}
+
+static int batt_temp_set_state(int health, int i_value)
+{
+	int ret = 0;
+
+	ret = pm8921_set_ext_battery_health(health, i_value);
+	if (ret)
+		pr_err("%s: failed to set health\n", __func__);
+
+	return ret;
+}
+
+static struct batt_temp_pdata mako_batt_temp_pada = {
+	.set_chg_i_limit = batt_temp_set_current_limit,
+	.get_chg_i_limit = batt_temp_get_current_limit,
+	.set_health_state = batt_temp_set_state,
+	.enable_charging = batt_temp_charger_enable,
+	.disable_charging = batt_temp_charger_disable,
+	.is_ext_power = batt_temp_ext_power_plugged,
+	.update_time = 10000, // 10 sec
+	.temp_level = batt_temp_ctrl_level,
+	.temp_nums = ARRAY_SIZE(batt_temp_ctrl_level),
+	.thr_mvolt = 4000, //4.0V
+	.i_decrease = WARM_BATT_CHG_I_MA,
+	.i_restore = MAX_BATT_CHG_I_MA,
+};
+
+struct platform_device batt_temp_ctrl = {
+	.name = "batt_temp_ctrl",
+	.id = -1,
+	.dev = {
+		.platform_data = &mako_batt_temp_pada,
+	},
+};
+
+void __init aries_set_adcmap(void)
+{
+	pm8xxx_set_adcmap_btm_threshold(adcmap_btm_threshold,
+			ARRAY_SIZE(adcmap_btm_threshold));
+}
+
 void __init apq8064_init_pmic(void)
 {
 	pmic_reset_irq = PM8921_IRQ_BASE + PM8921_RESOUT_IRQ;
+
+	aries_set_adcmap();
 
 	apq8064_device_ssbi_pmic1.dev.platform_data =
 						&apq8064_ssbi_pm8921_pdata;
