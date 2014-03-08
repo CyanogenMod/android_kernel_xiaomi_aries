@@ -1258,7 +1258,7 @@ static int msm_audrx_init(struct snd_soc_pcm_runtime *rtd)
 		bottom_spk_pamp_gpio = (PM8921_GPIO_PM_TO_SYS(18));
 	}*/
 
-	if (machine_is_apq8064_mako()) {
+	if (machine_is_apq8064_mako() || machine_is_apq8064_aries()) {
 		top_spk_pamp_gpio = (PM8921_GPIO_PM_TO_SYS(18));
 		bottom_spk_pamp_gpio = (PM8921_GPIO_PM_TO_SYS(19));
 	}
@@ -1270,7 +1270,8 @@ static int msm_audrx_init(struct snd_soc_pcm_runtime *rtd)
 		ARRAY_SIZE(apq8064_common_audio_map));
 
 	if (machine_is_apq8064_mtp() || machine_is_apq8064_mako()
-		|| machine_is_apq8064_flo() || machine_is_apq8064_deb()) {
+		|| machine_is_apq8064_flo() || machine_is_apq8064_deb()
+		|| machine_is_apq8064_aries()) {
 		snd_soc_dapm_add_routes(dapm, apq8064_mtp_audio_map,
 			ARRAY_SIZE(apq8064_mtp_audio_map));
 	} else  {
@@ -1330,7 +1331,7 @@ static int msm_audrx_init(struct snd_soc_pcm_runtime *rtd)
 		    (machine_is_apq8064_cdp() ||
 		     machine_is_apq8064_liquid())) ||
 		   (SOCINFO_VERSION_MAJOR(revision) > 1 &&
-		     !machine_is_apq8064_mako())) {
+		     !machine_is_apq8064_aries())) {
 		pr_debug("%s: MBHC mechanical switch available APQ8064 "
 			 "detected\n", __func__);
 		apq8064_hs_detect_use_gpio = 1;
@@ -2198,7 +2199,8 @@ static int __init msm_audio_init(void)
 	if (!soc_class_is_apq8064() ||
 		(socinfo_get_id() == 130) ||
 		((machine_is_apq8064_mtp() || machine_is_apq8064_flo() ||
-		machine_is_apq8064_deb() || machine_is_apq8064_mako()) &&
+		machine_is_apq8064_deb() || machine_is_apq8064_mako() ||
+		machine_is_apq8064_aries()) &&
 		(SOCINFO_VERSION_MINOR(version) == 1))) {
 		pr_info("%s: Not APQ8064 in SLIMBUS mode\n", __func__);
 		return -ENODEV;

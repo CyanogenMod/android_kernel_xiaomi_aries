@@ -3812,6 +3812,7 @@ static const struct snd_soc_dapm_route audio_map[] = {
 	{"MIC BIAS2 Internal1", NULL, "LDO_H"},
 	{"MIC BIAS2 Internal2", NULL, "LDO_H"},
 	{"MIC BIAS2 Internal3", NULL, "LDO_H"},
+	{"MIC BIAS2 External", NULL, "LDO_H"},
 	{"MIC BIAS3 Internal1", NULL, "LDO_H"},
 	{"MIC BIAS3 Internal2", NULL, "LDO_H"},
 	{"MIC BIAS3 External", NULL, "LDO_H"},
