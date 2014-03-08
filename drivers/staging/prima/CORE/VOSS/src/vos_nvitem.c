@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2013, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2014, The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -69,7 +69,8 @@ static char crda_alpha2[2] = {0, 0}; /* country code from initial crda req */
 static char run_time_alpha2[2] = {0, 0}; /* country code from none-default country req */
 static v_BOOL_t crda_regulatory_entry_valid = VOS_FALSE;
 static v_BOOL_t crda_regulatory_run_time_entry_valid = VOS_FALSE;
-
+/* Cant access pAdapter in this file so defining a new variable to wait when changing country*/
+static struct completion change_country_code;
 /*----------------------------------------------------------------------------
  * Preprocessor Definitions and Constants
  * -------------------------------------------------------------------------*/
@@ -346,7 +347,7 @@ static CountryInfoTable_t countryInfoTable =
         { REGDOMAIN_ETSI,    {'T', 'R'}},  //TURKEY
         { REGDOMAIN_WORLD,   {'T', 'T'}},  //TRINIDAD AND TOBAGO
         { REGDOMAIN_NO_5GHZ, {'T', 'V'}},  //TUVALU
-        { REGDOMAIN_WORLD,   {'T', 'W'}},  //TAIWAN, PROVINCE OF CHINA
+        { REGDOMAIN_FCC,     {'T', 'W'}},  //TAIWAN, PROVINCE OF CHINA
         { REGDOMAIN_HI_5GHZ, {'T', 'Z'}},  //TANZANIA, UNITED REPUBLIC OF
         { REGDOMAIN_WORLD,   {'U', 'A'}},  //UKRAINE
         { REGDOMAIN_KOREA,   {'U', 'G'}},  //UGANDA
@@ -1754,10 +1755,12 @@ VOS_STATUS vos_nv_getNVBuffer(v_VOID_t **pNvBuffer,v_SIZE_t *pSize)
   \brief vos_nv_setRegDomain - 
   \param clientCtxt  - Client Context, Not used for PRIMA
               regId  - Regulatory Domain ID
+              sendRegHint - send hint to nl80211
   \return status set REG domain operation
   \sa
   -------------------------------------------------------------------------*/
-VOS_STATUS vos_nv_setRegDomain(void * clientCtxt, v_REGDOMAIN_t regId)
+VOS_STATUS vos_nv_setRegDomain(void * clientCtxt, v_REGDOMAIN_t regId,
+                                                v_BOOL_t sendRegHint)
 {
     v_CONTEXT_t pVosContext = NULL;
     hdd_context_t *pHddCtx = NULL;
@@ -1781,7 +1784,7 @@ VOS_STATUS vos_nv_setRegDomain(void * clientCtxt, v_REGDOMAIN_t regId)
    /* when CRDA is not running then we are world roaming.
       In this case if 11d is enabled, then country code should
       be update on basis of world roaming */
-   if ((NULL != pHddCtx) && (memcmp(pHddCtx->cfg_ini->crdaDefaultCountryCode,
+   if (sendRegHint && (NULL != pHddCtx) && (memcmp(pHddCtx->cfg_ini->crdaDefaultCountryCode,
                     CFG_CRDA_DEFAULT_COUNTRY_CODE_DEFAULT , 2) == 0))
    {
       wiphy = pHddCtx->wiphy;
@@ -2295,6 +2298,16 @@ static int create_crda_regulatory_entry_from_regd(struct wiphy *wiphy,
   crda_regulatory_entry_post_processing(wiphy, request, nBandCapability, domain_id);
   return 0;
 }
+/*
+* FUNCTION: vos_nv_change_country_code_cb
+* to wait for contry code completion
+*/
+void* vos_nv_change_country_code_cb(void *pAdapter)
+{
+   struct completion *change_code_cng = pAdapter;
+   complete(change_code_cng);
+   return NULL;
+}
 
 /*
  * Function: wlan_hdd_crda_reg_notifier
@@ -2314,11 +2327,50 @@ int wlan_hdd_crda_reg_notifier(struct wiphy *wiphy,
     int i,j,k,m;
     wiphy_dbg(wiphy, "info: cfg80211 reg_notifier callback for country"
                      " %c%c\n", request->alpha2[0], request->alpha2[1]);
+    if (pHddCtx->isLoadUnloadInProgress)
+    {
+       wiphy_dbg(wiphy, "info: %s: Unloading/Loading in Progress. Ignore!!!",
+                 __func__);
+       return 0;
+    }
     if (request->initiator == NL80211_REGDOM_SET_BY_USER)
     {
+       int status;
        wiphy_dbg(wiphy, "info: set by user\n");
-       if (create_crda_regulatory_entry(wiphy, request, pHddCtx->cfg_ini->nBandCapability) != 0)
+       init_completion(&change_country_code);
+       /* We will process hints by user from nl80211 in driver.
+        * sme_ChangeCountryCode will set the country to driver
+        * and update the regdomain.
+        * when we return back to nl80211 from this callback, the nl80211 will
+        * send NL80211_CMD_REG_CHANGE event to the hostapd waking it up to
+        * query channel list from nl80211. Thus we need to update the channels
+        * according to reg domain set by user before returning to nl80211 so
+        * that hostapd will gets the updated channels.
+        * The argument sendRegHint in sme_ChangeCountryCode is
+        * set to eSIR_FALSE (hint is from nl80211 and thus
+        * no need to notify nl80211 back)*/
+       status = sme_ChangeCountryCode(pHddCtx->hHal,
+                                   (void *)(tSmeChangeCountryCallback)
+                                   vos_nv_change_country_code_cb,
+                                   request->alpha2,
+                                   &change_country_code,
+                                   pHddCtx->pvosContext,
+                                   eSIR_FALSE);
+       if (eHAL_STATUS_SUCCESS == status)
+       {
+          status = wait_for_completion_interruptible_timeout(
+                                       &change_country_code,
+                                       msecs_to_jiffies(WLAN_WAIT_TIME_COUNTRY));
+          if(status <= 0)
+          {
+             wiphy_dbg(wiphy, "info: set country timed out\n");
+          }
+       }
+       else
+       {
+          wiphy_dbg(wiphy, "info: unable to set country by user\n");
           return 0;
+       }
        // ToDo
        /* Don't change default country code to CRDA country code by user req */
        /* Shouldcall sme_ChangeCountryCode to send a message to trigger read
@@ -2326,7 +2378,8 @@ int wlan_hdd_crda_reg_notifier(struct wiphy *wiphy,
        //sme_ChangeCountryCode(pHddCtx->hHal, NULL,
        //    &country_code[0], pAdapter, pHddCtx->pvosContext);
     }
-    else if (request->initiator == NL80211_REGDOM_SET_BY_COUNTRY_IE)
+
+    if (request->initiator == NL80211_REGDOM_SET_BY_COUNTRY_IE)
     {
        wiphy_dbg(wiphy, "info: set by country IE\n");
        if (create_crda_regulatory_entry(wiphy, request, pHddCtx->cfg_ini->nBandCapability) != 0)
@@ -2341,7 +2394,8 @@ int wlan_hdd_crda_reg_notifier(struct wiphy *wiphy,
        //    &country_code[0], pAdapter, pHddCtx->pvosContext);
     }
     else if (request->initiator == NL80211_REGDOM_SET_BY_DRIVER ||
-             (request->initiator == NL80211_REGDOM_SET_BY_CORE))
+             (request->initiator == NL80211_REGDOM_SET_BY_CORE)||
+                (request->initiator == NL80211_REGDOM_SET_BY_USER))
     {
        if ( eHAL_STATUS_SUCCESS !=  sme_GetCountryCode(pHddCtx->hHal, ccode, &uBufLen))
        {
@@ -2463,12 +2517,12 @@ int wlan_hdd_crda_reg_notifier(struct wiphy *wiphy,
           {
              for (j=0; j<wiphy->bands[IEEE80211_BAND_5GHZ]->n_channels; j++)
              {
-                 // p2p UNII-1 band channels are passive when domain is FCC.
+                 // UNII-1 band channels are passive when domain is FCC.
                 if ((wiphy->bands[IEEE80211_BAND_5GHZ ]->channels[j].center_freq == 5180 ||
                                wiphy->bands[IEEE80211_BAND_5GHZ]->channels[j].center_freq == 5200 ||
                                wiphy->bands[IEEE80211_BAND_5GHZ]->channels[j].center_freq == 5220 ||
                                wiphy->bands[IEEE80211_BAND_5GHZ]->channels[j].center_freq == 5240) &&
-                               (ccode[0]== 'U'&& ccode[1]=='S'))
+                               ((domainIdCurrent == REGDOMAIN_FCC) && pHddCtx->nEnableStrictRegulatoryForFCC))
                 {
                    wiphy->bands[IEEE80211_BAND_5GHZ]->channels[j].flags |= IEEE80211_CHAN_PASSIVE_SCAN;
                 }
@@ -2476,7 +2530,7 @@ int wlan_hdd_crda_reg_notifier(struct wiphy *wiphy,
                                     wiphy->bands[IEEE80211_BAND_5GHZ]->channels[j].center_freq == 5200 ||
                                     wiphy->bands[IEEE80211_BAND_5GHZ]->channels[j].center_freq == 5220 ||
                                     wiphy->bands[IEEE80211_BAND_5GHZ]->channels[j].center_freq == 5240) &&
-                                    (ccode[0]!= 'U'&& ccode[1]!='S'))
+                                    ((domainIdCurrent != REGDOMAIN_FCC) || !pHddCtx->nEnableStrictRegulatoryForFCC))
                 {
                    wiphy->bands[IEEE80211_BAND_5GHZ]->channels[j].flags &= ~IEEE80211_CHAN_PASSIVE_SCAN;
                 }
@@ -2488,5 +2542,8 @@ int wlan_hdd_crda_reg_notifier(struct wiphy *wiphy,
           }
        }
     }
+
+    complete(&pHddCtx->wiphy_channel_update_event);
+
 return 0;
 }

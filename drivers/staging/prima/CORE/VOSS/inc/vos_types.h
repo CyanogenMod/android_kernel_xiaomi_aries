@@ -148,6 +148,7 @@ typedef enum
    VOS_MODULE_ID_VOSS       = 10,
    VOS_MODULE_ID_SAP        = 11,
    VOS_MODULE_ID_HDD_SOFTAP = 12,
+   VOS_MODULE_ID_PMC        = 13,
 
    // not a real module ID.  This is used to identify the maxiumum
    // number of VOS_MODULE_IDs and should always be at the END of
@@ -168,7 +169,6 @@ typedef enum
     VOS_P2P_GO_MODE,
     VOS_MONITOR_MODE,
     VOS_FTM_MODE = 5,
-    VOS_P2P_DEVICE,
     VOS_MAX_NO_OF_MODE
 
 } tVOS_CON_MODE;

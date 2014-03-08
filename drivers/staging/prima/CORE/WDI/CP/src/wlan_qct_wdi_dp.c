@@ -623,8 +623,7 @@ WDI_FillTxBd
                  pBd->bdRate = WDI_BDRATE_BCMGMT_FRAME;
              }
          }
-
-         if ( ucTxFlag & WDI_USE_BD_RATE2_FOR_MANAGEMENT_FRAME) 
+         if ( ucTxFlag & WDI_USE_BD_RATE2_FOR_MANAGEMENT_FRAME)
          {
            pBd->bdRate = WDI_BDRATE_CTRL_FRAME;
          }

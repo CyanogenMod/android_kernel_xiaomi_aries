@@ -351,6 +351,9 @@ typedef struct sPESession           // Added to Support BT-AMP
 #endif
     tANI_BOOLEAN fWaitForProbeRsp;
     tANI_BOOLEAN fIgnoreCapsChange;
+    tANI_BOOLEAN fDeauthReceived;
+    tANI_BOOLEAN isCiscoVendorAP;
+    tANI_U8 isAmsduSupportInAMPDU;
 }tPESession, *tpPESession;
 
 #define LIM_MAX_ACTIVE_SESSIONS 4

@@ -10015,7 +10015,7 @@ WDI_ProcessAddSTASelfReq
   wpt_uint8*                            pSendBuffer         = NULL;
   wpt_uint16                            usDataOffset        = 0;
   wpt_uint16                            usSendSize          = 0;
-  tAddStaSelfParams_V1                  halAddSTASelfParams;
+  tAddStaSelfParams                     halAddSTASelfParams;
   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
   /*-------------------------------------------------------------------------
@@ -10040,9 +10040,9 @@ WDI_ProcessAddSTASelfReq
   -----------------------------------------------------------------------*/
   if (( WDI_STATUS_SUCCESS != WDI_GetMessageBuffer( pWDICtx,
                         WDI_ADD_STA_SELF_REQ,
-                        sizeof(tAddStaSelfParams_V1),
+                        sizeof(tAddStaSelfParams),
                         &pSendBuffer, &usDataOffset, &usSendSize))||
-      ( usSendSize < (usDataOffset + sizeof(tAddStaSelfParams_V1) )))
+      ( usSendSize < (usDataOffset + sizeof(tAddStaSelfParams) )))
   {
      WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
               "Unable to get send buffer in ADD STA SELF REQ %x %x %x",
@@ -10056,22 +10056,10 @@ WDI_ProcessAddSTASelfReq
                  sizeof(pWDICtx->wdiCacheAddSTASelfReq));
 
   wpalMemoryCopy(halAddSTASelfParams.selfMacAddr,
-                   pwdiAddSTASelfReqParams->wdiAddSTASelfInfo.selfMacAddr, 6);
-  halAddSTASelfParams.iface_persona = HAL_IFACE_UNKNOWN;
-  if (pwdiAddSTASelfReqParams->wdiAddSTASelfInfo.currDeviceMode == VOS_STA_MODE)
-  {
-      halAddSTASelfParams.iface_persona = HAL_IFACE_STA_MODE;
-  }
-  else if ((pwdiAddSTASelfReqParams->wdiAddSTASelfInfo.currDeviceMode ==
-              VOS_P2P_CLIENT_MODE) ||
-           (pwdiAddSTASelfReqParams->wdiAddSTASelfInfo.currDeviceMode ==
-              VOS_P2P_DEVICE))
-  {
-      halAddSTASelfParams.iface_persona = HAL_IFACE_P2P_MODE;
-  }
+                   pwdiAddSTASelfReqParams->wdiAddSTASelfInfo.selfMacAddr, 6) ;
 
   wpalMemoryCopy( pSendBuffer+usDataOffset, &halAddSTASelfParams,
-                                         sizeof(tAddStaSelfParams_V1));
+                                         sizeof(tAddStaSelfParams));
 
   pWDICtx->wdiReqStatusCB     = pwdiAddSTASelfReqParams->wdiReqStatusCB;
   pWDICtx->pReqStatusUserData = pwdiAddSTASelfReqParams->pUserData;
@@ -17321,7 +17309,6 @@ WDI_ProcessSetMaxTxPowerRsp
   {
      WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_ERROR,
               "Error status returned in Set Max Tx Power Response ");
-     WDI_DetectedDeviceError( pWDICtx, WDI_ERR_BASIC_OP_FAILURE);
      return WDI_STATUS_E_FAILURE;
   }
 
@@ -20331,6 +20318,11 @@ WDI_ResponseTimerCB
        return;
     }
 #ifndef WDI_RE_ENABLE_WIFI_ON_WDI_TIMEOUT
+   if(wpalIsWDresetInProgress())
+   {
+       wpalDevicePanic();
+   }
+
     wpalWcnssResetIntr();
     /* if this timer fires, it means Riva did not receive the FIQ */
     wpalTimerStart(&pWDICtx->ssrTimer, WDI_SSR_TIMEOUT);
@@ -25560,10 +25552,6 @@ WDI_ProcessSetPowerParamsReq
   /* Beacon Early Termination Interval */
   powerParams.uBETInterval =
     pwdiPowerParamsReqParams->wdiSetPowerParamsInfo.uBETInterval;
-
-  /* MAX LI for modulated DTIM */
-  powerParams.uMaxLIModulatedDTIM =
-  pwdiPowerParamsReqParams->wdiSetPowerParamsInfo.uMaxLIModulatedDTIM;
 
    wpalMemoryCopy( pSendBuffer+usDataOffset,
                    &powerParams,

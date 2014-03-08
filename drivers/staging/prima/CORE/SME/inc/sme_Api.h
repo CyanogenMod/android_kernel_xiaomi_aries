@@ -94,7 +94,6 @@
 
 //Macro to disable split scan
 #define SME_DISABLE_SPLIT_SCAN   255
-
 /*-------------------------------------------------------------------------- 
   Type declarations
   ------------------------------------------------------------------------*/
@@ -118,6 +117,7 @@ typedef struct _smeConfigParams
     tANI_U8       RoamRssiDiff;
     tANI_BOOLEAN  isWESModeEnabled;
 #endif
+    tANI_U8  isAmsduSupportInAMPDU;
 } tSmeConfigParams, *tpSmeConfigParams;
 
 
@@ -225,18 +225,9 @@ eHalStatus sme_Stop(tHalHandle hHal, tANI_BOOLEAN pmcFlag);
   \sa
   
   --------------------------------------------------------------------------*/
-eHalStatus sme_OpenSession(tHalHandle hHal, csrRoamCompleteCallback callback,
-                           void *pContext, tANI_U8 *pSelfMacAddr,
-                           tANI_U8 *pbSessionId);
+eHalStatus sme_OpenSession(tHalHandle hHal, csrRoamCompleteCallback callback, void *pContext,
+                           tANI_U8 *pSelfMacAddr, tANI_U8 *pbSessionId);
 
-/*--------------------------------------------------------------------------
-
-  \brief sme_SetCurrDeviceMode() - Sets the current operating device mode.
-  \param hHal - The handle returned by macOpen.
-  \param currDeviceMode - Current operating device mode.
-  --------------------------------------------------------------------------*/
-
-void sme_SetCurrDeviceMode (tHalHandle hHal, tVOS_CON_MODE currDeviceMode);
 
 /*--------------------------------------------------------------------------
   
@@ -450,6 +441,17 @@ eHalStatus sme_ScanGetResult(tHalHandle hHal, tANI_U8 sessionId, tCsrScanResultF
     \return eHalStatus     
   ---------------------------------------------------------------------------*/
 eHalStatus sme_ScanFlushResult(tHalHandle hHal, tANI_U8 sessionId);
+
+/*
+ * ---------------------------------------------------------------------------
+ *  \fn sme_FilterScanResults
+ *  \brief a wrapper function to request CSR to filter the scan results based
+ *   on valid chennel list.
+ *  \return eHalStatus
+ *---------------------------------------------------------------------------
+ */
+eHalStatus sme_FilterScanResults(tHalHandle hHal, tANI_U8 sessionId);
+
 eHalStatus sme_ScanFlushP2PResult(tHalHandle hHal, tANI_U8 sessionId);
 
 /* ---------------------------------------------------------------------------
@@ -1096,6 +1098,18 @@ extern eHalStatus sme_RegisterPowerSaveCheck (
    tANI_BOOLEAN (*checkRoutine) (void *checkContext), void *checkContext);
 
 /* ---------------------------------------------------------------------------
+    \fn sme_Register11dScanDoneCallback
+    \brief  Register a routine of type csrScanCompleteCallback which is
+            called whenever an 11d scan is done
+    \param  hHal - The handle returned by macOpen.
+    \param  callback -  11d scan complete routine to be registered
+    \return eHalStatus
+  ---------------------------------------------------------------------------*/
+extern eHalStatus sme_Register11dScanDoneCallback (
+   tHalHandle hHal,
+   csrScanCompleteCallback);
+
+/* ---------------------------------------------------------------------------
     \fn sme_DeregisterPowerSaveCheck
     \brief  Deregister a power save check routine
     \param  hHal - The handle returned by macOpen.
@@ -1410,6 +1424,8 @@ typedef void ( *tSmeChangeCountryCallback)(void *pContext);
 
     \param pCountry New Country Code String
 
+    \param sendRegHint If we want to send reg hint to nl80211
+
     \return eHalStatus  SUCCESS.
 
                          FAILURE or RESOURCES  The API finished and failed.
@@ -1419,7 +1435,8 @@ eHalStatus sme_ChangeCountryCode( tHalHandle hHal,
                                   tSmeChangeCountryCallback callback,
                                   tANI_U8 *pCountry,
                                   void *pContext,
-                                  void* pVosContext );
+                                  void* pVosContext,
+                                  tAniBool sendRegHint);
 
 
 /* ---------------------------------------------------------------------------
@@ -1712,7 +1729,7 @@ eHalStatus sme_SetKeepAlive (tHalHandle hHal, tANI_U8 sessionId,
             VOS_STATUS_E_FAILURE - failure
             VOS_STATUS_SUCCESS  success
   ---------------------------------------------------------------------------*/
-eHalStatus sme_AbortMacScan(tHalHandle hHal);
+eHalStatus sme_AbortMacScan(tHalHandle hHal, eCsrAbortReason reason);
 
 /* ----------------------------------------------------------------------------
    \fn sme_GetOperationChannel
@@ -1898,7 +1915,7 @@ tANI_U8 sme_GetConcurrentOperationChannel( tHalHandle hHal );
             VOS_STATUS_E_FAILURE - failure
             VOS_STATUS_SUCCESS  success
   ---------------------------------------------------------------------------*/
-eHalStatus sme_AbortMacScan(tHalHandle hHal);
+eHalStatus sme_AbortMacScan(tHalHandle hHal, eCsrAbortReason reason);
 
 /* ---------------------------------------------------------------------------
     \fn sme_GetCfgValidChannels
@@ -2705,14 +2722,26 @@ eHalStatus sme_UpdateRoamScanOffloadEnabled(tHalHandle hHal, v_BOOL_t nRoamScanO
 
 /* ---------------------------------------------------------------------------
     \fn sme_IsFeatureSupportedByFW
-    \brief  Check if an feature is enabled by FW
-            
-    \param  feattEnumValue - Enumeration value of the feature to be checked.
+    \brief  Check if a feature is enabled by FW
+
+    \param  featEnumValue - Enumeration value of the feature to be checked.
                 A value from enum placeHolderInCapBitmap
                               
     \- return 1/0 (TRUE/FALSE) 
     -------------------------------------------------------------------------*/
 tANI_U8 sme_IsFeatureSupportedByFW(tANI_U8 featEnumValue);
+
+/* ---------------------------------------------------------------------------
+    \fn sme_IsFeatureSupportedByDriver
+    \brief  Check if a feature is enabled by driver
+
+    \param  featEnumValue - Enumeration value of the feature to be checked.
+                A value from enum placeHolderInCapBitmap
+
+    \- return 1/0 (TRUE/FALSE)
+    -------------------------------------------------------------------------*/
+tANI_U8 sme_IsFeatureSupportedByDriver(tANI_U8 featEnumValue);
+
 #ifdef FEATURE_WLAN_TDLS
 /* ---------------------------------------------------------------------------
     \fn sme_SendTdlsMgmtFrame
@@ -2820,24 +2849,28 @@ eHalStatus sme_SetPhyMode(tHalHandle hHal, eCsrPhyMode phyMode);
 eCsrPhyMode sme_GetPhyMode(tHalHandle hHal);
 
 /*--------------------------------------------------------------------------
-   \brief sme_isSta_p2p_clientConnected() - a wrapper function to check if there
-                                         is any connected session .
-   This is a synchronous call
-   \param hHal - The handle returned by macOpen
-   \return VOS_STATUS - SME passed the request to CSR successfully.
-           Other status means SME is failed to send the request.
-   \sa
- --------------------------------------------------------------------------*/
+  \brief sme_isSta_p2p_clientConnected() - a wrapper function to check if there
+                                           is any connected session .
+  This is a synchronous call
+  \param hHal - The handle returned by macOpen
+  \return VOS_STATUS - SME passed the request to CSR successfully.
+          Other status means SME is failed to send the request.
+  \sa
+  --------------------------------------------------------------------------*/
 VOS_STATUS sme_isSta_p2p_clientConnected(tHalHandle hHal);
 
 /*--------------------------------------------------------------------------
-   \brief sme_enable_disable_split_scan() - a wrapper function to set the split
-                                           scan parameter.
-   This is a synchronous call
-   \param hHal - The handle returned by macOpen
-   \return None.
-   \sa
+  \brief sme_enable_disable_split_scan() - a wrapper function to set the split
+                                          scan parameter.
+  This is a synchronous call
+  \param hHal - The handle returned by macOpen
+  \return None.
+  \sa
   --------------------------------------------------------------------------*/
 void sme_enable_disable_split_scan (tHalHandle hHal, tANI_U8 nNumStaChan,
                                     tANI_U8 nNumP2PChan);
+
+void smeGetCommandQStatus( tHalHandle hHal );
+
+eHalStatus sme_RoamDelPMKIDfromCache( tHalHandle hHal, tANI_U8 sessionId, tANI_U8 *pBSSId );
 #endif //#if !defined( __SME_API_H )

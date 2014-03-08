@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2013, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2014, The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -72,9 +72,9 @@
 //default beacon interval value used in HB timer interval calculation
 #define LIM_HB_TIMER_BEACON_INTERVAL             100
 
-/* This timer is a periodic timer which expires at every 5 sec to
+/* This timer is a periodic timer which expires at every 1 sec to
    convert  ACTIVE DFS channel to DFS channels */
-#define ACTIVE_TO_PASSIVE_CONVERISON_TIMEOUT     5000
+#define ACTIVE_TO_PASSIVE_CONVERISON_TIMEOUT     1000
 
 /**
  * limCreateTimers()
@@ -791,7 +791,10 @@ limCreateTimers(tpAniSirGlobal pMac)
         tx_timer_delete(&pMac->lim.limTimers.gLimActiveToPassiveChannelTimer);
 
         if(NULL != pMac->lim.gLimPreAuthTimerTable.pTable)
+        {
             palFreeMemory(pMac->hHdd, pMac->lim.gLimPreAuthTimerTable.pTable);
+            pMac->lim.gLimPreAuthTimerTable.pTable = NULL;
+        }
 
         return TX_TIMER_ERROR;
 
@@ -950,7 +953,8 @@ limAssocFailureTimerHandler(void *pMacGlobal, tANI_U32 param)
 
 #if  defined (WLAN_FEATURE_VOWIFI_11R) || defined (FEATURE_WLAN_CCX) || defined(FEATURE_WLAN_LFR)
     if((LIM_REASSOC == param) &&
-       (NULL != pMac->lim.pSessionEntry))
+       (NULL != pMac->lim.pSessionEntry) &&
+       (pMac->lim.pSessionEntry->limMlmState == eLIM_MLM_WT_FT_REASSOC_RSP_STATE))
     {
         limLog(pMac, LOGE, FL("Reassoc timeout happened"));
         if(pMac->lim.reAssocRetryAttempt < LIM_MAX_REASSOC_RETRY_LIMIT)
@@ -1435,7 +1439,7 @@ limDeactivateAndChangeTimer(tpAniSirGlobal pMac, tANI_U32 timerId)
             }
             else
             {
-                limLog(pMac, LOGE, FL("Deactivated probe after hb timer"));
+                limLog(pMac, LOG1, FL("Deactivated probe after hb timer"));
             }
 
             if (wlan_cfgGetInt(pMac, WNI_CFG_PROBE_AFTER_HB_FAIL_TIMEOUT,

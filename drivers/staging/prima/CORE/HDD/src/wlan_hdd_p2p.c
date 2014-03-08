@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2013, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2014, The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -182,6 +182,7 @@ eHalStatus wlan_hdd_remain_on_channel_callback( tHalHandle hHal, void* pCtx,
     }
 
     vos_mem_free( pRemainChanCtx );
+    pRemainChanCtx = NULL;
     complete(&pAdapter->cancel_rem_on_chan_var);
     return eHAL_STATUS_SUCCESS;
 }
@@ -487,6 +488,13 @@ int wlan_hdd_cfg80211_cancel_remain_on_channel( struct wiphy *wiphy,
         hddLog( LOGE, 
                 "%s: timeout waiting for remain on channel ready indication",
                 __func__);
+
+        if (pHddCtx->isLogpInProgress)
+        {
+            VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                      "%s: LOGP in Progress. Ignore!!!", __func__);
+            return -EAGAIN;
+        }
     }
     INIT_COMPLETION(pAdapter->cancel_rem_on_chan_var);
     /* Issue abort remain on chan request to sme.
@@ -720,7 +728,11 @@ int wlan_hdd_action( struct wiphy *wiphy, struct net_device *dev,
             }
             goto err_rem_channel;
         }
-
+        /* This will extend timer in LIM when sending Any action frame
+         * It will cover remain on channel timer till next action frame
+         * in rx direction.
+         */
+        extendedWait = (tANI_U16)wait;
         /* Wait for driver to be ready on the requested channel */
         status = wait_for_completion_interruptible_timeout(
                      &pAdapter->offchannel_tx_event,
@@ -941,12 +953,21 @@ int hdd_setP2pNoa( struct net_device *dev, tANI_U8 *command )
     tP2pPsConfig NoA;
     int count, duration, start_time;
     char *param;
+    tANI_U8 ret = 0;
 
     param = strnchr(command, strlen(command), ' ');
     if (param == NULL)
       return -EINVAL;
     param++;
-    sscanf(param, "%d %d %d", &count, &start_time, &duration);
+    ret = sscanf(param, "%d %d %d", &count, &start_time, &duration);
+    if (ret < 3)
+    {
+        VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+               "%s: P2P_SET GO NoA: fail to read param "
+               "count=%d duration=%d interval=%d \n",
+                __func__, count, start_time, duration);
+        return -EINVAL;
+    }
     VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
                "%s: P2P_SET GO NoA: count=%d duration=%d interval=%d \n",
                 __func__, count, start_time, duration);
@@ -1014,12 +1035,21 @@ int hdd_setP2pOpps( struct net_device *dev, tANI_U8 *command )
     tP2pPsConfig NoA;
     char *param;
     int legacy_ps, opp_ps, ctwindow;
+    tANI_U8 ret = 0;
 
     param = strnchr(command, strlen(command), ' ');
     if (param == NULL)
         return -EINVAL;
     param++;
-    sscanf(param, "%d %d %d", &legacy_ps, &opp_ps, &ctwindow);
+    ret = sscanf(param, "%d %d %d", &legacy_ps, &opp_ps, &ctwindow);
+    if (ret < 3)
+    {
+        VOS_TRACE (VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                 "%s: P2P_SET GO PS: fail to read param "
+                 " legacy_ps=%d opp_ps=%d ctwindow=%d \n",
+                 __func__, legacy_ps, opp_ps, ctwindow);
+        return -EINVAL;
+    }
     VOS_TRACE (VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
                  "%s: P2P_SET GO PS: legacy_ps=%d opp_ps=%d ctwindow=%d \n",
                  __func__, legacy_ps, opp_ps, ctwindow);
@@ -1341,7 +1371,7 @@ void hdd_sendMgmtFrameOverMonitorIface( hdd_adapter_t *pMonAdapter,
          hddLog( LOG1, FL("Success"));
      }
      else
-         hddLog( LOGE, FL("Failed %d"), rxstat);                   
+         hddLog( LOGE, FL("Failed %d"), rxstat);
 
      return ;
 }
@@ -1358,6 +1388,8 @@ void hdd_indicateMgmtFrame( hdd_adapter_t *pAdapter,
     tANI_U8 subType = 0;
     tActionFrmType actionFrmType;
     hdd_cfg80211_state_t *cfgState = NULL;
+    hdd_context_t *pHddCtx = NULL;
+    hdd_scaninfo_t *pScanInfo = NULL;
 
     hddLog(VOS_TRACE_LEVEL_INFO, "%s: Frame Type = %d Frame Length = %d\n",
             __func__, frameType, nFrameLength);
@@ -1414,6 +1446,13 @@ void hdd_indicateMgmtFrame( hdd_adapter_t *pAdapter,
     {
         hddLog( LOGE, FL("pAdapter has invalid magic"));
         return;
+    }
+
+    pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
+    if (NULL == pHddCtx)
+    {
+         hddLog(VOS_TRACE_LEVEL_FATAL,"%s: HDD Context Null Pointer", __func__);
+         return;
     }
 
     if ((WLAN_HDD_SOFTAP == pAdapter->device_mode) ||
@@ -1491,7 +1530,18 @@ void hdd_indicateMgmtFrame( hdd_adapter_t *pAdapter,
                     }
                 }
 #endif
-
+                if( (actionFrmType == WLAN_HDD_PROV_DIS_REQ) ||
+                    (actionFrmType == WLAN_HDD_GO_NEG_REQ) )
+                {
+                    pScanInfo =  &pHddCtx->scan_info;
+                    if((pScanInfo != NULL) && (pHddCtx->scan_info.mScanPending))
+                    {
+                        hddLog(LOGE,"Action frame received when Scanning is in"
+                                    " progress. Abort Scan.");
+                        hdd_abort_mac_scan(pAdapter->pHddCtx,
+                                           eCSR_SCAN_ABORT_DEFAULT);
+                    }
+                }
                 if (((actionFrmType == WLAN_HDD_PROV_DIS_RESP) &&
                             (cfgState->actionFrmState == HDD_PD_REQ_ACK_PENDING)) ||
                         ((actionFrmType == WLAN_HDD_GO_NEG_RESP) &&
