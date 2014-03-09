@@ -24,7 +24,7 @@
 #define PC_CC_COLS             13
 
 #define PC_TEMP_ROWS		29
-#define PC_TEMP_COLS		11
+#define PC_TEMP_COLS		12
 
 #define MAX_SINGLE_LUT_COLS	20
 
@@ -108,13 +108,6 @@ enum battery_type {
 	BATT_UNKNOWN = 0,
 	BATT_PALLADIUM,
 	BATT_DESAY,
-	BATT_LGE,
-	BATT_LG_1900,
-	BATT_LG_3000,
-	BATT_SAMSUNG_1900,
-	BATT_SAMSUNG_3000,
-	BATT_SONY_1900,
-	BATT_SONY_3000,
 };
 
 /**
@@ -141,25 +134,19 @@ struct pm8921_bms_platform_data {
 	int				ignore_shutdown_soc;
 	int				adjust_soc_low_threshold;
 	int				chg_term_ua;
-	int				eoc_check_soc;
-	int				bms_support_wlc;
-	int				wlc_term_ua;
-	int				wlc_max_voltage_uv;
-	int				(*wlc_is_plugged)(void);
-	int				first_fixed_iavg_ma;
 };
 
 #if defined(CONFIG_PM8921_BMS) || defined(CONFIG_PM8921_BMS_MODULE)
 extern struct pm8921_bms_battery_data  palladium_1500_data;
 extern struct pm8921_bms_battery_data  desay_5200_data;
-extern struct pm8921_bms_battery_data  lge_2100_mako_data;
-extern struct pm8921_bms_battery_data  lg_1900_data;
-extern struct pm8921_bms_battery_data  lg_3000_data;
-extern struct pm8921_bms_battery_data  samsung_1900_data;
-extern struct pm8921_bms_battery_data  samsung_3000_data;
 extern struct pm8921_bms_battery_data  sony_1900_data;
+extern struct pm8921_bms_battery_data  samsung_1900_data;
+extern struct pm8921_bms_battery_data  samsung_2000_data;
+extern struct pm8921_bms_battery_data  lg_1900_data;
+extern struct pm8921_bms_battery_data  lg_2000_data;
 extern struct pm8921_bms_battery_data  sony_3000_data;
-
+extern struct pm8921_bms_battery_data  lg_3000_data;
+extern struct pm8921_bms_battery_data  samsung_3000_data;
 /**
  * pm8921_bms_get_vsense_avg - return the voltage across the sense
  *				resitor in microvolts
@@ -233,15 +220,6 @@ int pm8921_bms_get_rbatt(void);
  *					soc stored in a coincell backed register
  */
 void pm8921_bms_invalidate_shutdown_soc(void);
-
-/**
- * pm8921_bms_cc_uah -	function to get the coulomb counter based charge. Note
- *			that the coulomb counter are reset when the current
- *			consumption is low (below 8mA for more than 5 minutes),
- *			This will lead in a very low coulomb counter charge
- *			value upon wakeup from sleep.
- */
-int pm8921_bms_cc_uah(int *cc_uah);
 #else
 static inline int pm8921_bms_get_vsense_avg(int *result)
 {
@@ -279,10 +257,6 @@ static inline int pm8921_bms_get_rbatt(void)
 }
 static inline void pm8921_bms_invalidate_shutdown_soc(void)
 {
-}
-static inline int pm8921_bms_cc_uah(int *cc_uah)
-{
-	return -ENXIO;
 }
 #endif
 

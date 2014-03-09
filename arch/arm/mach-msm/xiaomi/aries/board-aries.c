@@ -1920,7 +1920,6 @@ static struct platform_device *pm8921_common_devices[] __initdata = {
 };
 
 static struct platform_device *common_devices[] __initdata = {
-	&batt_temp_ctrl,
 	&msm_device_smd_apq8064,
 	&apq8064_device_otg,
 	&apq8064_device_gadget_peripheral,
