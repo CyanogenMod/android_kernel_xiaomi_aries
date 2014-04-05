@@ -421,6 +421,7 @@ struct mxt_data {
 	int lcd_id;
 	bool is_crc_got;
 	bool is_key_verify;
+	bool disable_keys;
 };
 
 static struct dentry *debug_base;
@@ -966,6 +967,11 @@ static void mxt_handle_key_array(struct mxt_data *data,
 
 	if (!data->pdata->key_codes) {
 		dev_err(&data->client->dev, "keyarray is not supported\n");
+		return;
+	}
+
+	if(data->disable_keys) {
+		dev_err(&data->client->dev, "keyarray is disabled\n");
 		return;
 	}
 
@@ -2394,6 +2400,29 @@ static ssize_t mxt_mem_access_write(struct file *filp, struct kobject *kobj,
 	return ret == 0 ? count : 0;
 }
 
+static ssize_t mxt_disable_keys_show(struct device *dev,
+	struct device_attribute *attr, char *buf)
+{
+	struct mxt_data *data = dev_get_drvdata(dev);
+	char c = data->disable_keys ? '1' : '0';
+	return sprintf(buf, "%c\n", c);
+}
+
+static ssize_t mxt_disable_keys_store(struct device *dev,
+	struct device_attribute *attr, const char *buf, size_t count)
+{
+	struct mxt_data *data = dev_get_drvdata(dev);
+	int i;
+
+	if (sscanf(buf, "%u", &i) == 1 && i < 2) {
+		data->disable_keys = (i == 1);
+		return count;
+	} else {
+		dev_dbg(dev, "disable_keys write error\n");
+		return -EINVAL;
+	}
+}
+
 static DEVICE_ATTR(dbgdump, 0664, mxt_dbgdump_show, mxt_dbgdump_store);
 static DEVICE_ATTR(selftest, 0664, mxt_selftest_show, mxt_selftest_store);
 static DEVICE_ATTR(update_fw, 0664, mxt_update_fw_show, mxt_update_fw_store);
@@ -2402,6 +2431,8 @@ static DEVICE_ATTR(debug_enable, S_IWUSR | S_IRUSR, mxt_debug_enable_show,
 static DEVICE_ATTR(pause_driver, S_IWUSR | S_IRUSR, mxt_pause_show,
 		   mxt_pause_store);
 static DEVICE_ATTR(update_fw_flag, 0200, NULL, mxt_update_fw_flag_store);
+static DEVICE_ATTR(disable_keys, S_IWUSR | S_IRUSR, mxt_disable_keys_show,
+		   mxt_disable_keys_store);
 
 static struct attribute *mxt_attrs[] = {
 	&dev_attr_dbgdump.attr,
@@ -2410,6 +2441,7 @@ static struct attribute *mxt_attrs[] = {
 	&dev_attr_debug_enable.attr,
 	&dev_attr_pause_driver.attr,
 	&dev_attr_update_fw_flag.attr,
+	&dev_attr_disable_keys.attr,
 	NULL
 };
 
