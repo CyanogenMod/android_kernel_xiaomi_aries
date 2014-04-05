@@ -30,73 +30,9 @@
 #include "board-aries.h"
 
 #ifdef CONFIG_HAPTIC_ISA1200
-#define HAP_SHIFT_LVL_OE_GPIO		PM8921_MPP_PM_TO_SYS(8)
 #define ISA1200_HAP_EN_GPIO		PM8921_GPIO_PM_TO_SYS(33)
 #define ISA1200_HAP_LEN_GPIO		PM8921_GPIO_PM_TO_SYS(20)
-#define ISA1200_HAP_CLK_PM8921		PM8921_GPIO_PM_TO_SYS(44)
-#define ISA1200_HAP_CLK_PM8917		PM8921_GPIO_PM_TO_SYS(38)
-
-static int isa1200_clk_enable(bool on)
-{
-	unsigned int gpio = ISA1200_HAP_CLK_PM8921;
-	int rc = 0;
-
-	if (socinfo_get_pmic_model() == PMIC_MODEL_PM8917)
-		gpio = ISA1200_HAP_CLK_PM8917;
-
-	gpio_set_value_cansleep(gpio, on);
-
-	if (on) {
-		rc = pm8xxx_aux_clk_control(CLK_MP3_2, XO_DIV_1, true);
-		if (rc) {
-			pr_err("%s: unable to write aux clock register(%d)\n",
-				__func__, rc);
-			goto err_gpio_dis;
-		}
-	} else {
-		rc = pm8xxx_aux_clk_control(CLK_MP3_2, XO_DIV_NONE, true);
-		if (rc)
-			pr_err("%s: unable to write aux clock register(%d)\n",
-				__func__, rc);
-	}
-
-	return rc;
-
-err_gpio_dis:
-	gpio_set_value_cansleep(gpio, !on);
-	return rc;
-}
-
-static int isa1200_dev_setup(bool enable)
-{
-	unsigned int gpio = ISA1200_HAP_CLK_PM8921;
-	int rc = 0;
-
-	if (socinfo_get_pmic_model() == PMIC_MODEL_PM8917)
-		gpio = ISA1200_HAP_CLK_PM8917;
-
-	if (!enable)
-		goto free_gpio;
-
-	rc = gpio_request(gpio, "haptics_clk");
-	if (rc) {
-		pr_err("%s: unable to request gpio %d config(%d)\n",
-			__func__, gpio, rc);
-		return rc;
-	}
-
-	rc = gpio_direction_output(gpio, 0);
-	if (rc) {
-		pr_err("%s: unable to set direction\n", __func__);
-		goto free_gpio;
-	}
-
-	return 0;
-
-free_gpio:
-	gpio_free(gpio);
-	return rc;
-}
+#define ISA1200_HAP_PWM			PM8921_GPIO_PM_TO_SYS(24)
 
 static struct isa1200_regulator isa1200_reg_data[] = {
 	{
@@ -109,20 +45,20 @@ static struct isa1200_regulator isa1200_reg_data[] = {
 
 static struct isa1200_platform_data isa1200_1_pdata = {
 	.name = "vibrator",
-	.dev_setup = isa1200_dev_setup,
-	.clk_enable = isa1200_clk_enable,
-	.need_pwm_clk = true,
 	.hap_en_gpio = ISA1200_HAP_EN_GPIO,
 	.hap_len_gpio = ISA1200_HAP_LEN_GPIO,
 	.max_timeout = 15000,
-	.mode_ctrl = PWM_GEN_MODE,
+	.mode_ctrl = PWM_INPUT_MODE,
+	.pwm_ch_id = 0,
 	.pwm_fd = {
-		.pwm_div = 256,
+		.pwm_freq = 44800,
 	},
-	.is_erm = false,
-	.smart_en = true,
-	.ext_clk_en = true,
+	.duty = 90,
+	.is_erm = true,
+	.smart_en = false,
+	.ext_clk_en = false,
 	.chip_en = 1,
+	.max_timeout = 15000,
 	.regulator_info = isa1200_reg_data,
 	.num_regulators = ARRAY_SIZE(isa1200_reg_data),
 };
