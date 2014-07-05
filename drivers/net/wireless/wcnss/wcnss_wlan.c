@@ -66,6 +66,13 @@ static DEFINE_SPINLOCK(reg_spinlock);
 #define RIVA_SSR_BIT			BIT(23)
 #define RIVA_SUSPEND_BIT		BIT(24)
 
+#define MSM_RIVA_CCU_BASE			0x03200800
+
+#define CCU_INVALID_ADDR_OFFSET		0x100
+#define CCU_LAST_ADDR0_OFFSET		0x104
+#define CCU_LAST_ADDR1_OFFSET		0x108
+#define CCU_LAST_ADDR2_OFFSET		0x10c
+
 #define WCNSS_CTRL_CHANNEL			"WCNSS_CTRL"
 #define WCNSS_MAX_FRAME_SIZE		(4*1024)
 #define WCNSS_VERSION_LEN			30
@@ -381,6 +388,7 @@ static ssize_t wcnss_version_show(struct device *dev,
 
 static DEVICE_ATTR(wcnss_version, S_IRUSR,
 		wcnss_version_show, NULL);
+
 
 void wcnss_riva_dump_pmic_regs(void)
 {
