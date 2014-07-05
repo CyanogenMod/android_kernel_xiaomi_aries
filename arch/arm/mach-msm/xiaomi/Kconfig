@@ -22,12 +22,6 @@ config LCD_KCAL
 	help
 	  Interface to calibrate LCD color temperature
 
-config XIAOMI_PRIMACONFIG_INTERFACE
-	bool "Support primaconfig interface"
-	default n
-	depends on MACH_XIAOMI
-	help
-	  Interface to set mac address for prima wlan driver from userspace
 
 config XIAOMI_EARJACK_UART
 	bool "Earjack UART"

@@ -61,8 +61,4 @@ static inline void __init xiaomi_add_ramconsole_devices(void)
 }
 #endif
 
-#ifdef CONFIG_XIAOMI_PRIMACONFIG_INTERFACE
-void __init xiaomi_add_primaconfig_devices(void);
-#endif
-
 #endif // __ASM_ARCH_MSM_BOARD_XIAOMI_H
