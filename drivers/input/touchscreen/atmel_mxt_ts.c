@@ -971,7 +971,7 @@ static void mxt_handle_key_array(struct mxt_data *data,
 	}
 
 	if(data->disable_keys) {
-		dev_err(&data->client->dev, "keyarray is disabled\n");
+		dev_dbg(&data->client->dev, "keyarray is disabled\n");
 		return;
 	}
 
@@ -1009,7 +1009,7 @@ static void mxt_handle_key_array(struct mxt_data *data,
 		input_sync(data->input_dev);
 	}
 
-	dev_info(&data->client->dev, "Key count = %d\n", data->key_pressed_count);
+	dev_dbg(&data->client->dev, "Key count = %d\n", data->key_pressed_count);
 
 	data->keyarray_old = data->keyarray_new;
 }
