@@ -359,7 +359,7 @@ static void lm3530_brightness_set(struct led_classdev *led_cdev,
 			lm3530_gpio_en(drvdata->enable);
 		}
 
-		dev_info(&drvdata->client->dev, "set brightness %d\n", drvdata->brightness);
+		dev_dbg(&drvdata->client->dev, "set brightness %d\n", drvdata->brightness);
 
 		break;
 	default:
