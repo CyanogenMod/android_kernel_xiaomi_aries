@@ -2866,6 +2866,8 @@ static int mxt_suspend(struct device *dev)
 	struct input_dev *input_dev = data->input_dev;
 	int error;
 
+	disable_irq(data->irq);
+
 	mutex_lock(&input_dev->mutex);
 
 	if (input_dev->users) {
@@ -2931,6 +2933,8 @@ static int mxt_resume(struct device *dev)
 	schedule_delayed_work(&data->disable_antipalm_delayed_work, MXT_STOP_ANTIPALM_TIMEOUT);
 
 	mutex_unlock(&input_dev->mutex);
+
+	enable_irq(data->irq);
 
 	return 0;
 }
