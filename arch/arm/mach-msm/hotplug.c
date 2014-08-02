@@ -11,8 +11,9 @@
 #include <linux/errno.h>
 #include <linux/smp.h>
 #include <linux/cpu.h>
+#include <linux/ratelimit.h>
+#include <linux/notifier.h>
 
-#include <asm/cacheflush.h>
 #include <asm/smp_plat.h>
 #include <asm/vfp.h>
 
@@ -30,9 +31,6 @@ static DEFINE_PER_CPU(unsigned int, warm_boot_flag);
 
 static inline void cpu_enter_lowpower(void)
 {
-	/* Just flush the cache. Changing the coherency is not yet
-	 * available on msm. */
-	flush_cache_all();
 }
 
 static inline void cpu_leave_lowpower(void)
@@ -150,6 +148,29 @@ static struct notifier_block hotplug_rtb_notifier = {
 	.notifier_call = hotplug_rtb_callback,
 };
 
+static int hotplug_cpu_check_callback(struct notifier_block *nfb,
+				      unsigned long action, void *hcpu)
+{
+	int cpu = (int)hcpu;
+
+	switch (action & (~CPU_TASKS_FROZEN)) {
+	case CPU_DOWN_PREPARE:
+		if (cpu == 0) {
+			pr_err_ratelimited("CPU0 hotplug is not supported\n");
+			return NOTIFY_BAD;
+		}
+		break;
+	default:
+		break;
+	}
+
+	return NOTIFY_OK;
+}
+static struct notifier_block hotplug_cpu_check_notifier = {
+	.notifier_call = hotplug_cpu_check_callback,
+	.priority = INT_MAX,
+};
+
 int msm_platform_secondary_init(unsigned int cpu)
 {
 	int ret;
@@ -170,6 +191,12 @@ int msm_platform_secondary_init(unsigned int cpu)
 
 static int __init init_hotplug(void)
 {
-	return register_hotcpu_notifier(&hotplug_rtb_notifier);
+	int rc;
+
+	rc = register_hotcpu_notifier(&hotplug_rtb_notifier);
+	if (rc)
+		return rc;
+
+	return register_hotcpu_notifier(&hotplug_cpu_check_notifier);
 }
 early_initcall(init_hotplug);
