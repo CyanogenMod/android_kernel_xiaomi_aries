@@ -922,7 +922,7 @@ static void *def_tabla_mbhc_cal(void)
 #undef S
 #define S(X, Y) ((TABLA_MBHC_CAL_PLUG_TYPE_PTR(tabla_cal)->X) = (Y))
 	S(v_no_mic, 30);
-	S(v_hs_max, 2400);
+	S(v_hs_max, 2700);
 #undef S
 #define S(X, Y) ((TABLA_MBHC_CAL_BTN_DET_PTR(tabla_cal)->X) = (Y))
 	S(c[0], 62);
@@ -939,12 +939,12 @@ static void *def_tabla_mbhc_cal(void)
 	btn_cfg = TABLA_MBHC_CAL_BTN_DET_PTR(tabla_cal);
 	btn_low = tabla_mbhc_cal_btn_det_mp(btn_cfg, TABLA_BTN_DET_V_BTN_LOW);
 	btn_high = tabla_mbhc_cal_btn_det_mp(btn_cfg, TABLA_BTN_DET_V_BTN_HIGH);
-	btn_low[0] = -50;
-	btn_high[0] = 10;
-	btn_low[1] = 11;
-	btn_high[1] = 52;
-	btn_low[2] = 53;
-	btn_high[2] = 94;
+	btn_low[0] = -75;
+	btn_high[0] = 150;
+	btn_low[1] = 151;
+	btn_high[1] = 330;
+	btn_low[2] = 331;
+	btn_high[2] = 655;
 	btn_low[3] = 95;
 	btn_high[3] = 133;
 	btn_low[4] = 134;
@@ -954,7 +954,7 @@ static void *def_tabla_mbhc_cal(void)
 	btn_low[6] = 209;
 	btn_high[6] = 244;
 	btn_low[7] = 245;
-	btn_high[7] = 330;
+	btn_high[7] = 930;
 	n_ready = tabla_mbhc_cal_btn_det_mp(btn_cfg, TABLA_BTN_DET_N_READY);
 	n_ready[0] = 80;
 	n_ready[1] = 68;

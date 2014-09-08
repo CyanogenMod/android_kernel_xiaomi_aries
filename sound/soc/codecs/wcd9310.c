@@ -5435,6 +5435,8 @@ static short __tabla_codec_sta_dce(struct snd_soc_codec *codec, int dce,
 	short bias_value;
 	struct tabla_priv *tabla = snd_soc_codec_get_drvdata(codec);
 
+	pr_debug("%s: enter", __func__);
+
 	wcd9xxx_disable_irq(codec->control_data, TABLA_IRQ_MBHC_POTENTIAL);
 	if (noreldetection)
 		tabla_turn_onoff_rel_detection(codec, false);
@@ -5472,6 +5474,7 @@ static short __tabla_codec_sta_dce(struct snd_soc_codec *codec, int dce,
 	if (noreldetection)
 		tabla_turn_onoff_rel_detection(codec, true);
 	wcd9xxx_enable_irq(codec->control_data, TABLA_IRQ_MBHC_POTENTIAL);
+	pr_debug("%s: leave", __func__);
 
 	return bias_value;
 }
@@ -5961,6 +5964,8 @@ void tabla_mbhc_cal(struct snd_soc_codec *codec)
 	void *calibration;
 	u16 bias2_ctl;
 
+	pr_debug("%s: enter", __func__);
+
 	tabla = snd_soc_codec_get_drvdata(codec);
 	calibration = tabla->mbhc_cfg.calibration;
 
@@ -6076,6 +6081,8 @@ void tabla_mbhc_cal(struct snd_soc_codec *codec)
 
 	wcd9xxx_enable_irq(codec->control_data, TABLA_IRQ_MBHC_POTENTIAL);
 	tabla_turn_onoff_rel_detection(codec, true);
+
+	pr_debug("%s: leave", __func__);
 }
 
 void *tabla_mbhc_cal_btn_det_mp(const struct tabla_mbhc_btn_detect_cfg* btn_det,
@@ -6153,12 +6160,23 @@ static s16 tabla_mbhc_highest_btn_mv(struct snd_soc_codec *codec)
 	struct tabla_priv *tabla;
 	struct tabla_mbhc_btn_detect_cfg *btn_det;
 	u16 *btn_high;
+	s16 result;
+	int i;
 
 	tabla = snd_soc_codec_get_drvdata(codec);
 	btn_det = TABLA_MBHC_CAL_BTN_DET_PTR(tabla->mbhc_cfg.calibration);
 	btn_high = tabla_mbhc_cal_btn_det_mp(btn_det, TABLA_BTN_DET_V_BTN_HIGH);
 
-	return btn_high[btn_det->num_btn - 1];
+	result = btn_high[0];
+	for (i = 1; i < btn_det->num_btn; i++)
+	{
+		if (btn_high[i] > result)
+		{
+			result = btn_high[i];
+		}
+	}
+
+	return result;
 }
 
 static void tabla_mbhc_calc_thres(struct snd_soc_codec *codec)
@@ -6337,6 +6355,7 @@ static int tabla_determine_button(const struct tabla_priv *priv,
 		pr_debug("%s: couldn't find button number for mic mv %d\n",
 			 __func__, micmv);
 
+	pr_debug("%s: micmv=%d, btn=%d", __func__, micmv, btn);
 	return btn;
 }
 
@@ -6953,16 +6972,16 @@ tabla_codec_get_plug_type(struct snd_soc_codec *codec, bool highhph)
 		 */
 		if (mic_mv[i] < plug_type_ptr->v_no_mic) {
 			plug_type[i] = PLUG_TYPE_HEADPHONE;
-			pr_debug("%s: Detect attempt %d, detected Headphone\n",
-				 __func__, i);
+			pr_debug("%s: Detect attempt %d, detected Headphone (mic_mv=%d)\n",
+				 __func__, i, mic_mv[i]);
 		} else if (highhph && (mic_mv[i] > plug_type_ptr->v_hs_max)) {
 			plug_type[i] = PLUG_TYPE_HIGH_HPH;
 			pr_debug("%s: Detect attempt %d, detected High "
-				 "Headphone\n", __func__, i);
+				 "Headphone (mic_mv=%d)\n", __func__, i, mic_mv[i]);
 		} else {
 			plug_type[i] = PLUG_TYPE_HEADSET;
-			pr_debug("%s: Detect attempt %d, detected Headset\n",
-				 __func__, i);
+			pr_debug("%s: Detect attempt %d, detected Headset (mic_mv=%d)\n",
+				 __func__, i, mic_mv[i]);
 		}
 
 		if (i > 0 && (plug_type[i - 1] != plug_type[i])) {
